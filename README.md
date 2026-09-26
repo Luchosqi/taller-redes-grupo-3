@@ -2,6 +2,8 @@
 
 Repositorio de trabajo para preparar, documentar y evidenciar las actividades del taller. Integrantes: Luis Jaramillo, Giovanny Toledo y Maximiliano Rivas.
 
+Para retomar el trabajo, empezar por [PROGRESO.md](PROGRESO.md), luego leer [AGENT.md](AGENT.md) y [REVISION_PAUTA_CAMPUS.md](REVISION_PAUTA_CAMPUS.md).
+
 ## Antes de configurar el VPS
 
 1. Leer [AGENT.md](AGENT.md) y [REVISION_PAUTA_CAMPUS.md](REVISION_PAUTA_CAMPUS.md).
