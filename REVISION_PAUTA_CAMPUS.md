@@ -8,7 +8,7 @@ Esta lista de trabajo fue preparada por integrantes de otro grupo y se adapta co
 - Dominio, IP y usuario indicados en el archivo de acceso del Grupo 3: `zorro-darwin.lazos.cl`, `200.13.5.39`, `tredes3`. La autenticación indicada es mediante certificado; no transcribir contraseñas ni llaves aquí.
 - Tres CMS elegidos y versión de cada uno: pendiente.
 - Cuentas de correo para las pruebas: pendiente.
-- Programa de sockets, protocolo y puerto: pendiente.
+- Cliente de sockets: el usuario indicó que el código del grupo está en `/home/luchosqi/Documentos/Universidad/semestres/Semestre 6/Taller De Redes/5%infrome1/chat-texto`, fuera del repositorio; pendiente de inspección cuando se aborde esa actividad. Protocolo y puerto: pendientes de confirmar con la pauta.
 - Fecha de entrega y formatos exigidos: verificar en el campus.
 
 ## Criterio para redactar y evaluar el informe
@@ -60,10 +60,10 @@ Los nombres y alcances de estos apartados son una guía provisional, no una tran
 
 ## Inconsistencias y datos por confirmar
 
-- El archivo de acceso del Grupo 3 indica autenticación solo con certificado, pero también incluye un campo `pass`. El equipo informa que recibió por correo `tredes3.key`, probablemente la llave privada SSH del grupo. El nombre y la extensión no bastan para confirmar su uso ni si `pass` es la frase de paso de esa llave. Verificarlo con las instrucciones originales o el docente; no asumir que es la contraseña de la cuenta ni publicar la llave o su frase de paso.
+- El acceso SSH quedó verificado con la llave privada Ed25519 `~/Descargas/tredes3.key`, sin frase de paso y con permisos locales `600`. El campo `pass` del archivo de acceso fue aceptado por sudo para el usuario `tredes3`; corresponde a la contraseña de la cuenta para administración, no a la llave SSH. Mantener la llave y la contraseña fuera de Git, el informe y las capturas.
 - Ese mismo archivo pide una contraseña de «16 dígitos» y luego especifica que sea alfanumérica y combine mayúsculas y minúsculas. Dígitos y caracteres alfanuméricos no significan lo mismo. Para crear usuarios nuevos, confirmar si la exigencia es de 16 caracteres alfanuméricos; no cambiar la clave de acceso entregada para el VPS.
 - La lista de 30 apartados y varios detalles de configuración provienen del material de otro grupo. Verificar en Campus Virtual los nombres exactos, requisitos, restricciones, puntajes, formatos y entregables antes de tratarlos como obligatorios.
-- Aún falta que el Grupo 3 defina y registre los tres CMS, las cuentas de correo para pruebas y el programa/protocolo/puerto de sockets. No inventar esos datos ni presentarlos como implementados.
+- Aún falta que el Grupo 3 defina y registre los tres CMS y las cuentas de correo para pruebas. El cliente de sockets ya existe fuera del repositorio, pero faltan inspeccionar su protocolo, puerto, dependencias y forma de ejecución, y contrastarlos con la pauta. No inventar datos ni presentar servicios como implementados.
 - Los nombres del equipo y los datos de host consignados aquí provienen de la instrucción del usuario y del archivo `CredencialesdeACCESOVPSGRUPO3.md`, respectivamente. No se detectó en los otros Markdown un nombre de integrante o credencial contradictorios.
 
 ## Decisiones que no deben copiarse de otro equipo

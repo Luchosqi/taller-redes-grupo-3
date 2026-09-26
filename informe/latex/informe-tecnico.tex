@@ -36,7 +36,20 @@ Pendiente: enumerar los objetivos confirmados en la pauta.
 Pendiente: incluir un diagrama y explicar los componentes, sus relaciones y las decisiones adoptadas. Distinguir servicios planificados de servicios verificados.
 
 \section{Entorno y línea base}
-Pendiente: documentar sistema operativo, recursos y estado inicial medidos en el VPS. No incluir contraseñas ni llaves.
+La inspección inicial se realizó por SSH el 26 de septiembre de 2026, antes de aplicar cambios. El VPS ejecuta AlmaLinux 9.8, informa el nombre de host \texttt{localhost.localdomain} y tiene la zona horaria \texttt{Europe/Madrid} con NTP activo. El sistema cuenta con 3.6 GiB de memoria, 3.2 GiB de swap y un volumen raíz de 28 GiB, de los cuales 2.3 GiB estaban usados.
+
+SELinux se encontraba en modo \texttt{Enforcing}. \texttt{firewalld} estaba activo en la zona \texttt{public}, asociada a la interfaz \texttt{ens18}, con los servicios \texttt{cockpit}, \texttt{dhcpv6-client}, \texttt{http} y \texttt{ssh}, además de una regla explícita para \texttt{80/tcp}. La consulta de sockets mostró SSH en \texttt{22/tcp}, HTTP en \texttt{80/tcp} y Chrony en \texttt{323/udp} limitado a loopback. No se encontraron unidades de systemd fallidas.
+
+Apache \texttt{2.4.62-13.el9_8.6} estaba instalado y activo. La solicitud HTTP devolvió estado \texttt{403}; sin embargo, el navegador mostró la página de prueba de AlmaLinux. Esto se explica por \texttt{/etc/httpd/conf.d/welcome.conf}, que dirige el error 403 de la raíz a \texttt{/.noindex.html} cuando no hay un índice y deshabilita el listado del directorio. La captura de la Figura~\ref{fig:apache-linea-base} muestra esa página: acredita que Apache responde en la IP pública, pero no acredita un sitio del taller ni un CMS.
+
+El directorio raíz \texttt{/var/www/html} estaba vacío y pertenecía a \texttt{root:root}. Apache no mostró VirtualHosts nombrados y advirtió que no tenía un \texttt{ServerName} global, por lo que usaba \texttt{localhost.localdomain}. El resolvedor del VPS no obtuvo una dirección para \texttt{zorro-darwin.lazos.cl}; la resolución y delegación DNS deberán verificarse en la actividad correspondiente. No estaban instalados \texttt{mariadb-server}, \texttt{bind}, \texttt{pdns-server}, \texttt{postfix}, \texttt{dovecot}, \texttt{vsftpd} ni \texttt{php}. Esta línea base sirve para diferenciar el estado preexistente de los cambios del taller y evitar afirmar que un servicio ya estaba configurado. El nombre de host genérico, las reglas de \texttt{cockpit} y la zona horaria se mantienen como observaciones pendientes de contrastar con la pauta; no se modificaron durante esta inspección. Véase la bitácora y los extractos en \texttt{docs/bitacora-vps.md} y \texttt{evidencias/01-preparacion-vps/}.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\textwidth]{01-preparacion-vps/pagina-prueba-almalinux.png}
+  \caption{Página de bienvenida de AlmaLinux observada al consultar \texttt{http://200.13.5.39/}. La respuesta usa la página de prueba de Apache; todavía no hay un sitio del taller publicado.}
+  \label{fig:apache-linea-base}
+\end{figure}
 
 \section{Implementación y pruebas}
 En cada subsección explicar qué se hizo, cómo se configuró, por qué se tomaron las decisiones relevantes, qué prueba se ejecutó y qué resultado obtuvo. Las figuras deben llevar una explicación y acreditar un punto concreto.

@@ -1,0 +1,34 @@
+=== HTTP RESPONSE ===
+HTTP/1.1 403 Forbidden
+Date: Sat, 26 Sep 2026 04:17:39 GMT
+Server: Apache/2.4.62 (AlmaLinux)
+Last-Modified: Mon, 24 Mar 2025 16:15:24 GMT
+ETag: "1680-63118e9567f00"
+Accept-Ranges: bytes
+Content-Length: 5760
+Content-Type: text/html; charset=UTF-8
+
+=== APACHE VIRTUALHOSTS ===
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using localhost.localdomain. Set the 'ServerName' directive globally to suppress this message
+VirtualHost configuration:
+ServerRoot: "/etc/httpd"
+Main DocumentRoot: "/var/www/html"
+Main ErrorLog: "/etc/httpd/logs/error_log"
+Mutex cache-socache: using_defaults
+Mutex authdigest-opaque: using_defaults
+Mutex watchdog-callback: using_defaults
+Mutex proxy-balancer-shm: using_defaults
+Mutex rewrite-map: using_defaults
+Mutex authdigest-client: using_defaults
+Mutex dav_fs-lockdb: using_defaults
+Mutex lua-ivm-shm: using_defaults
+Mutex proxy: using_defaults
+Mutex authn-socache: using_defaults
+Mutex default: dir="/etc/httpd/run/" mechanism=default 
+PidFile: "/etc/httpd/run/httpd.pid"
+Define: DUMP_VHOSTS
+Define: DUMP_RUN_CFG
+User: name="apache" id=48 not_used
+Group: name="apache" id=48 not_used
+=== WEB ROOT ===
+drwxr-xr-x root:root /var/www/html

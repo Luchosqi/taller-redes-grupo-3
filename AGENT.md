@@ -6,9 +6,11 @@ Esta guía prepara el trabajo del Grupo 3; no acredita que una tarea se haya eje
 
 ## Datos que debe definir el equipo
 
-Datos confirmados en `CredencialesdeACCESOVPSGRUPO3.md`: Grupo 3, dominio `zorro-darwin.lazos.cl`, IP `200.13.5.39` y usuario `tredes3`. El archivo de acceso indica autenticación con certificado; el usuario informa que recibió por correo un archivo `tredes3.key`, que probablemente sea la llave privada SSH del grupo. Confirmar con el docente o probar el método indicado antes de usarla. No copiar ni publicar la llave, su frase de paso o la contraseña.
+Datos confirmados en `CredencialesdeACCESOVPSGRUPO3.md`: Grupo 3, dominio `zorro-darwin.lazos.cl`, IP `200.13.5.39` y usuario `tredes3`. El acceso SSH se verificó con la llave privada Ed25519 `~/Descargas/tredes3.key`; conservarla en esa ubicación, con permisos `600`, y fuera del repositorio. La contraseña del archivo de acceso permite sudo; no copiarla a este documento, al informe ni a capturas. No cambiarla.
 
 Completar cuando el equipo lo confirme: fecha de entrega, tres CMS y versiones, cuentas de correo de prueba, programa de sockets, protocolo y puerto. No copiar valores de otro grupo.
+
+El usuario informó que la aplicación cliente de sockets desarrollada por el grupo está fuera de este repositorio, en `/home/luchosqi/Documentos/Universidad/semestres/Semestre 6/Taller De Redes/5%infrome1/chat-texto`. No mover ni copiar ese material todavía. Al abordar sockets, inspeccionar allí el código, identificar lenguaje, protocolo, puerto, dependencias y forma de ejecución; después integrar en el repositorio solo los archivos necesarios, conservar el original y añadir instrucciones y pruebas de cliente-servidor. Confirmar en la pauta el protocolo y puerto requeridos antes de modificar el programa.
 
 Guardar la llave SSH y las credenciales del VPS fuera del repositorio. Anotar dónde están los respaldos, quién puede acceder a ellos y cómo se recuperan. No pegar contraseñas en este archivo.
 
