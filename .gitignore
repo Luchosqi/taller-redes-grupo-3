@@ -1,0 +1,32 @@
+# Credenciales y material privado
+CredencialesdeACCESOVPSGRUPO3.md
+*Credenciales*VPS*.md
+*.key
+*.pem
+id_rsa*
+id_ed25519*
+.env
+.env.*
+*.sql
+*.dump
+*.backup
+
+# Archivos temporales de LaTeX
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.log
+
+# Sistema y editor
+.DS_Store
+Thumbs.db
+.vscode/
