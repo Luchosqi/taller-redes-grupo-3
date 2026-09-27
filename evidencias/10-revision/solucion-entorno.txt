@@ -1,0 +1,15 @@
+GRUPO 3 | VPS: sistema, interfaz pública y salida a Internet
+Validación real: 2026-09-26T21:26:07-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ ssh -F /dev/null -o BatchMode=yes -i /home/gtoledo/Descargas/tredes3.key tredes3@200.13.5.39 'hostname; . /etc/os-release; echo "$PRETTY_NAME"; ip -br -4 addr show ens18; getenforce; curl -sSI --max-time 8 https://example.com | head -1'
+localhost.localdomain
+AlmaLinux 9.8 (Olive Jaguar)
+ens18            UP             200.13.5.39/26 
+Enforcing
+HTTP/2 200 
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to "store now, decrypt later" attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+[salida 0]
+

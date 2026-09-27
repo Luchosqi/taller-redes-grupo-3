@@ -1,0 +1,18 @@
+# Actividad 12 — Verificación integrada
+
+Fecha: 2026-09-26. Pruebas efectuadas desde el equipo local y el VPS asignado.
+
+| Servicio | Prueba integrada | Resultado |
+|---|---|---|
+| Usuarios/directorios | `getent`, propietarios/modos, jaulas FTP | Tres cuentas CMS presentes; directorios web de dueño individual; sin directorios públicos con bit `o+w`. FTP autenticado para las tres cuentas y restringido a cada HOME. |
+| DNS/PowerDNS | Consulta directa a `200.13.5.39` por UDP y TCP; resolvedor público y traza de delegación | SOA, NS, MX y A responden autoritativamente. `pdnsutil zone check`: 10 registros, 0 errores/avisos. La zona está delegada públicamente y el resolvedor `1.1.1.1` obtiene la SOA. |
+| MariaDB | Estado y `bind_address` | Servicio activo, escucha solo en `127.0.0.1`; bases DNS, CMS y RoundCube presentes. |
+| Poweradmin | GET `/login` con Host `dnsadmin` | HTTP 200; `/` redirige al login (302). |
+| Apache/CMS | GET a web1, web2, web3 por Host | Los tres sitios HTTP 200 tras la verificación final. Joomla `/administrator/` y Grav `/admin` responden; WordPress `/wp-admin/` redirige al login como corresponde. |
+| FTP | Login y listado pasivo en 2121 para CMS1, CMS2 y CMS3; anonimato | Tres usuarios autenticaron en sus jaulas; anónimo rechazado (530). Archivo subido por CMS1 coincide byte a byte con el origen al descargarlo por HTTP de web1. |
+| Correo | Envío CMS1→CMS2 y respuesta CMS2→CMS1; Maildir y RoundCube | Postfix informa entregas exitosas, Dovecot cuenta un mensaje de prueba por INBOX, y RoundCube mostró por AJAX el mensaje entrante de CMS1. IMAPS 993 y STARTTLS SMTP 25 negocian TLS 1.3. Certificado de laboratorio autofirmado. |
+| Firewall | Reglas activas y permanentes; pruebas externas | SSH/HTTP; 53 TCP+UDP; 25 TCP; 993 TCP; FTP 2121 y 30000–30100 TCP; chat 9000 TCP. `cockpit`/9090 retirado; 143 y puertos FTP explícitos adicionales no abiertos. |
+| SELinux | Modo, booleanos, contextos y módulo local | `Enforcing`; etiquetas CMS/RoundCube verificadas con `matchpathcon -V`; conectividad HTTPD general off; permisos amplios vsftpd off; módulo `roundcube_http_mail` presente. |
+| Chat | Cliente local `cliente.py` hacia `200.13.5.39:9000` | El servidor registró el texto de cliente y el cliente mostró la respuesta de servidor. Unidad systemd activa/habilitada y escucha en `0.0.0.0:9000`. |
+
+Servicios activos al cierre: MariaDB, PowerDNS, PHP-FPM, Apache, vsftpd, Postfix, Dovecot, firewalld y `chat-texto`. Evidencias detalladas: `evidencias/02-usuarios/`, `03-dns/`, `04-web-y-cms/`, `05-ftp/`, `06-correo/`, `07-firewall-selinux/` y `08-sockets/`.

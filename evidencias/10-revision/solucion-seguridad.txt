@@ -1,0 +1,40 @@
+GRUPO 3 | Servicios, firewall y SELinux después de las correcciones
+Validación real: 2026-09-26T21:21:12-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ date -Is; getenforce; systemctl is-active mariadb pdns httpd php-fpm vsftpd postfix dovecot firewalld chat-texto
+2026-09-27T02:21:13+02:00
+Enforcing
+active
+active
+active
+active
+active
+active
+active
+active
+active
+[salida 0]
+
+$ firewall-cmd --list-services; firewall-cmd --list-ports
+dhcpv6-client http ssh
+25/tcp 53/tcp 993/tcp 2121/tcp 9000/tcp 30000-30100/tcp 53/udp
+[salida 0]
+
+$ ss -lnt | grep -E ":(3306|2121|9000)[[:space:]]"
+LISTEN 0      1            0.0.0.0:9000      0.0.0.0:*   
+LISTEN 0      32           0.0.0.0:2121      0.0.0.0:*   
+LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*
+[salida 0]
+
+$ getsebool ftpd_full_access ftpd_anon_write httpd_can_network_connect
+ftpd_full_access --> off
+ftpd_anon_write --> off
+httpd_can_network_connect --> off
+[salida 0]
+
+$ semodule -l | grep -E "ftpd_httpd_content|roundcube_http_mail"
+ftpd_httpd_content
+roundcube_http_mail
+[salida 0]
+

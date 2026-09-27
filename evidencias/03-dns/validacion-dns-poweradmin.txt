@@ -1,0 +1,45 @@
+Actividad 3 y 4 — MariaDB, PowerDNS y Poweradmin
+Fecha de validación: 2026-09-26 (VPS, Europe/Madrid)
+
+Paquetes observados:
+- PowerDNS Authoritative 5.1.4 y backend MySQL 5.1.4.
+- PHP CLI 8.3.33.
+- Apache 2.4.62.
+- MariaDB Server 10.11.19 (validado previamente con VERSION() y @@bind_address).
+
+MariaDB:
+- Servicio activo; escucha únicamente en 127.0.0.1:3306.
+- Base pdns_redes3 y cuenta de backend de PowerDNS presentes.
+- Tablas del backend: domains, records, comments, domainmetadata,
+  cryptokeys, supermasters y tsigkeys.
+- La cuenta de backend tiene privilegios limitados a pdns_redes3.*.
+
+PowerDNS:
+- Servicio activo, escucha en TCP y UDP 53 sobre 0.0.0.0.
+- pdnsutil zone check zorro-darwin.lazos.cl:
+  Checked 10 records, 0 errors, 0 warnings.
+- dig @127.0.0.1 zorro-darwin.lazos.cl SOA +norecurse:
+  ns1.zorro-darwin.lazos.cl / hostmaster.zorro-darwin.lazos.cl.
+- dig @127.0.0.1 zorro-darwin.lazos.cl NS +norecurse:
+  ns1.zorro-darwin.lazos.cl.
+- dig @127.0.0.1 zorro-darwin.lazos.cl MX +norecurse:
+  10 mail.zorro-darwin.lazos.cl.
+- Registros A observados para ns1, web1, web2, web3, mail, webmail y dnsadmin:
+  200.13.5.39.
+
+Poweradmin:
+- VirtualHost HTTP configurado para dnsadmin.zorro-darwin.lazos.cl.
+- GET /login con Host dnsadmin.zorro-darwin.lazos.cl: HTTP 200.
+- Tablas y cuenta administrador inicializadas en pdns_redes3; hay una zona
+  y diez registros visibles en las tablas del backend.
+- SELinux sigue Enforcing; boolean httpd_can_network_connect_db está on.
+- Credencial web guardada en el archivo local protegido fuera del repositorio.
+
+Respaldos previos a cambios de configuración:
+- VPS: /home/tredes3/vps-backups/2026-09-26/mariadb-before y
+  /home/tredes3/vps-backups/2026-09-26/pdns-before.
+- Local: /tmp/taller-redes-vps-backups/2026-09-26/.
+- Respaldo previo a Poweradmin/Apache: /home/tredes3/vps-backups/2026-09-26/poweradmin-before.
+
+La zona se validó directamente contra localhost. El acceso DNS público queda
+pendiente de la fase de firewall y de confirmar delegación del dominio.

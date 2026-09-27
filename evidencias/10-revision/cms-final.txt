@@ -1,0 +1,3 @@
+web1 HTTP 200 title Fauna Araucanía | Noticias — Grupo 3 – CMS 1 · WordPress · Taller de Redes texto esperado True URL http://web1.zorro-darwin.lazos.cl/
+web2 HTTP 200 title Home texto esperado True URL http://web2.zorro-darwin.lazos.cl/
+web3 HTTP 200 title Guía de hábitats de La Araucanía | Grav texto esperado True URL http://web3.zorro-darwin.lazos.cl/

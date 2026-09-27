@@ -1,0 +1,26 @@
+GRUPO 3 | FTP fallido y contenido CMS pendiente
+Validación real: 2026-09-26T20:29:22-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ grep 'FAIL UPLOAD' /var/log/vsftpd.log | tail -3
+Sun Sep 27 00:16:01 2026 [pid 260782] [tredes3-cms1] FAIL UPLOAD: Client "190.160.238.202", "/public_html/revision-ftp.txt", 0.00Kbyte/sec
+Sun Sep 27 00:16:01 2026 [pid 260788] [tredes3-cms2] FAIL UPLOAD: Client "190.160.238.202", "/public_html/revision-ftp.txt", 0.00Kbyte/sec
+Sun Sep 27 00:16:02 2026 [pid 260794] [tredes3-cms3] FAIL UPLOAD: Client "190.160.238.202", "/public_html/revision-ftp.txt", 0.00Kbyte/sec
+[salida 0]
+
+$ mysql -N -e 'SELECT COUNT(*) AS articulos FROM web2_db.g3j_content;'
+0
+[salida 0]
+
+$ head -10 /home/tredes3-cms3/public_html/user/pages/01.home/default.md
+---
+title: Home
+body_classes: title-center title-h1h2
+---
+
+# Say Hello to Grav 2.0!
+## installation successful...
+
+Congratulations! You have installed the **Base Grav 2.0 Package** that provides a **simple page** and the new default **Quark 2** theme to get you started — built on [Blades CSS](https://blades.ninja/) (the actively maintained successor to Pico CSS), Font Awesome 7, and a refined typographic system with light/dark/auto appearance.
+[salida 0]
+

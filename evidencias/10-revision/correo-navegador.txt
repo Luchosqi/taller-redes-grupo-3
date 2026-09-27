@@ -1,0 +1,36 @@
+ENVIO CMS1 Redactar
+Correo
+Contactos
+Configuración
+Modo oscuro
+Acerca de
+Cerrar sesión
+Opciones y ficheros adjuntos
+Tamaño de archivo máximo permitido: 2.0 MB
+Adjuntar un archivo
+Confirmación de recibo
+Notificación de estado de la entrega
+Continuar formateando
+Prioridad
+La más baja
+Baja
+Normal
+Alta
+La más alta
+Guardar mensaje enviado en
+- no guardar -
+Entrada
+Enviados
+Guardar
+Adjuntar
+Firma
+Respuestas
+De
+tredes3-cms1@zorro-darwin.lazos.cl
+Destinatario
+tredes3-cms2@zorro-darwin.lazos.cl
+,
+Asunto
+Enviar
+Abrir en nueva ventana
+Error SMTP (): Ha fallado la conexión al servidor.

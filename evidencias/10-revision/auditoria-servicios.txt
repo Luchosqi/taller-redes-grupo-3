@@ -1,0 +1,30 @@
+GRUPO 3 | Auditoría de servicios y usuarios (solo lectura)
+Validación real: 2026-09-26T20:28:17-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ date -Is; getenforce; systemctl is-active mariadb pdns httpd php-fpm vsftpd postfix dovecot firewalld chat-texto
+2026-09-27T01:28:18+02:00
+Enforcing
+active
+active
+active
+active
+active
+active
+active
+active
+active
+[salida 0]
+
+$ stat -c '%U:%G %a %n' /home/tredes3-cms{1,2,3}/public_html
+tredes3-cms1:tredes3-cms1 755 /home/tredes3-cms1/public_html
+tredes3-cms2:tredes3-cms2 755 /home/tredes3-cms2/public_html
+tredes3-cms3:tredes3-cms3 755 /home/tredes3-cms3/public_html
+[salida 0]
+
+$ ss -lnt | grep -E ':(3306|2121|9000)[[:space:]]'
+LISTEN 0      1            0.0.0.0:9000      0.0.0.0:*   
+LISTEN 0      32           0.0.0.0:2121      0.0.0.0:*   
+LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*
+[salida 0]
+

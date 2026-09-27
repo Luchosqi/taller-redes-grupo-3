@@ -1,26 +1,53 @@
-\documentclass[12pt,a4paper]{article}
-
+\documentclass[11pt,a4paper]{article}
 \usepackage[spanish,es-nodecimaldot]{babel}
-\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{geometry}
-\usepackage{hyperref}
-\geometry{margin=2.5cm}
-
-\title{Informe ejecutivo\\Taller Integrado de Servicios de Red}
-\author{Luis Jaramillo, Giovanny Toledo y Maximiliano Rivas\\Grupo 3}
-\date{\today}
-
+\usepackage[utf8]{inputenc}
+\usepackage{geometry,graphicx,booktabs,tabularx,hyperref,xcolor}
+\geometry{margin=2.3cm}
+\hypersetup{colorlinks=true,urlcolor=blue!55!black}
+\setlength{\parskip}{.55em}
+\setlength{\parindent}{0pt}
 \begin{document}
-\maketitle
+\pagenumbering{gobble}
+\begin{titlepage}
+\centering
+\vspace*{1cm}
+\includegraphics[width=5.3cm]{recursos/ufro.png}\par
+\vspace{1cm}
+{\Large UNIVERSIDAD DE LA FRONTERA\par}
+{\large Ingeniería Informática\par}
+\vspace{2.2cm}
+{\Huge\bfseries Informe ejecutivo\par}
+\vspace{.5cm}
+{\Large Infraestructura de servicios para Fauna Araucanía\par}
+{\large Taller de Redes · Grupo 3\par}
+\vfill
+\begin{tabular}{rl}
+Integrantes: & Luis Jaramillo, Giovanny Toledo y Maximiliano Rivas\\
+Profesor: & Flavio Rojas Acuña\\
+Fecha de revisión: & 27 de septiembre de 2026\\
+\end{tabular}
+\vspace{1.3cm}
+\end{titlepage}
+\pagenumbering{arabic}
 
-\section{Resumen}
-Pendiente: redactar al finalizar las pruebas. Resumir el objetivo, los servicios efectivamente implementados, los resultados principales y las tareas parciales o pendientes.
+\section*{Necesidad y solución}
+Fauna Araucanía necesitaba presencia en Internet y servicios básicos alojados en el VPS asignado. El Grupo 3 organizó la solución bajo \texttt{zorro-darwin.lazos.cl}: un DNS propio, tres sitios independientes, administración de DNS, transferencia de archivos, correo con acceso web y un programa de chat. El VPS usa AlmaLinux 9.8; los servicios se mantienen bajo firewall y SELinux en modo \texttt{Enforcing}.
 
-\section{Resultados principales}
-Pendiente: incluir resultados verificables, no actividades solo planificadas.
+\section*{Resultados comprobados}
+\begin{tabularx}{\linewidth}{@{}p{3cm}X@{}}\toprule
+Área & Resultado observado desde el VPS o un equipo externo \\\midrule
+DNS y web & El dominio raíz y los nombres de servicio resolvieron a 200.13.5.39. WordPress, Joomla y Grav mostraron contenido propio en web1, web2 y web3. \\
+Administración & PowerAdmin permitió ingresar y administrar la zona; los cambios de prueba fueron visibles en consultas DNS. \\
+Archivos & Cada uno de los tres usuarios FTP pudo subir y modificar su archivo; la versión nueva se descargó desde su sitio. No pudieron entrar en carpetas de otros usuarios; el acceso anónimo fue rechazado. \\
+Correo & CMS1 envió un mensaje desde RoundCube a CMS2; CMS2 lo abrió y respondió; CMS1 abrió la respuesta. \\
+Chat y protección & El cliente local intercambió mensajes en dos conexiones consecutivas. Nueve servicios estaban activos; MariaDB solo escuchaba localmente y SELinux seguía en Enforcing. \\
+\bottomrule\end{tabularx}
 
-\section{Dificultades y estado final}
-Pendiente: resumir dificultades reales, soluciones y estado alcanzado.
+\section*{Dificultades y decisiones}
+La revisión de la primera entrega detectó fallas que no aparecían en comprobaciones superficiales: FTP aceptaba usuarios pero rechazaba la escritura, y RoundCube permitía entrar pero no enviar. Se aplicó una regla SELinux acotada para la escritura FTP y se corrigió el destino SMTP de RoundCube. Se completó el contenido propio de Joomla y Grav, se añadió la dirección del dominio raíz y se retiraron dos artefactos temporales de prueba. Cada corrección se contrastó con una operación completa; el informe técnico contiene comandos, capturas explicadas y resultados.
+
+\section*{Estado y límites}
+La infraestructura funciona para las actividades comprobadas del taller. El webmail y el FTP públicos usan transporte sin cifrado, y el certificado de correo es autofirmado: antes de un uso real deben incorporarse HTTPS, un método seguro de transferencia y un certificado confiable. La cuenta adicional \texttt{admin@} mencionada en la planificación no fue demostrada. El video resumen solicitado por la pauta no se elaboró en esta revisión. El informe técnico es el respaldo detallado de esta síntesis; las credenciales no aparecen en ninguno de los dos documentos.
 
 \end{document}

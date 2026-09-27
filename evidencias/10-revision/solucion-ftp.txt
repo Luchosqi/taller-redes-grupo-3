@@ -1,0 +1,29 @@
+GRUPO 3 | FTP: tres usuarios, jaula, escritura, HTTP y anónimo
+Validación real: 2026-09-26T21:17:07-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ /tmp/redes-audit-venv/bin/python /tmp/redes_ftp_full.py
+tredes3-cms1 autenticado, raíz= /
+Aislamiento /etc -> 550 Failed to change directory.
+Aislamiento /home/tredes3-cms2 -> 550 Failed to change directory.
+Subida prueba-grupo3-cms1.txt versión 1 -> 226 Transfer complete.
+HTTP 200 contenido coincide: True Grupo 3 - CMS 1 - version 1
+Subida prueba-grupo3-cms1.txt versión 2 -> 226 Transfer complete.
+HTTP 200 contenido coincide: True Grupo 3 - CMS 1 - version 2
+tredes3-cms2 autenticado, raíz= /
+Aislamiento /etc -> 550 Failed to change directory.
+Aislamiento /home/tredes3-cms3 -> 550 Failed to change directory.
+Subida prueba-grupo3-cms2.txt versión 1 -> 226 Transfer complete.
+HTTP 200 contenido coincide: True Grupo 3 - CMS 2 - version 1
+Subida prueba-grupo3-cms2.txt versión 2 -> 226 Transfer complete.
+HTTP 200 contenido coincide: True Grupo 3 - CMS 2 - version 2
+tredes3-cms3 autenticado, raíz= /
+Aislamiento /etc -> 550 Failed to change directory.
+Aislamiento /home/tredes3-cms1 -> 550 Failed to change directory.
+Subida prueba-grupo3-cms3.txt versión 1 -> 226 Transfer complete.
+HTTP 200 contenido coincide: True Grupo 3 - CMS 3 - version 1
+Subida prueba-grupo3-cms3.txt versión 2 -> 226 Transfer complete.
+HTTP 200 contenido coincide: True Grupo 3 - CMS 3 - version 2
+Anónimo rechazado: 530 Permission denied.
+[salida 0]
+

@@ -1,0 +1,3 @@
+Carga de prueba FTP para el Taller de Redes — Grupo 3.
+Esta evidencia se transfiere con tredes3-cms1 al webroot de web1 y se
+verifica por HTTP para demostrar publicación desde la jaula FTP.

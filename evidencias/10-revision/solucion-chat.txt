@@ -1,0 +1,20 @@
+GRUPO 3 | Chat: cliente local y dos respuestas del VPS
+Validación real: 2026-09-26T21:17:14-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ PYTHONPATH=/tmp /tmp/redes-audit-venv/bin/python /tmp/redes_chat_test.py
+Conexion consecutiva 1
+Conectado al servidor 200.13.5.39:9000
+Mensaje de prueba local G3 - sesion 1
+Servidor: Respuesta VPS G3 - sesion 1
+^C
+Cliente finalizado por el usuario.
+Conexion consecutiva 2
+Conectado al servidor 200.13.5.39:9000
+Mensaje de prueba local G3 - sesion 2
+Servidor: Respuesta VPS G3 - sesion 2
+^C
+Cliente finalizado por el usuario.
+OK: dos conversaciones consecutivas sin reiniciar servicio.
+[salida 0]
+

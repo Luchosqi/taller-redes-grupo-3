@@ -1,15 +1,18 @@
 # Revisión de pauta y preparación del Grupo 3
 
+> Estado final contrastado el 27-09-2026 CEST: el informe técnico y ejecutivo actualizados están en `informe/latex/`; la tabla integrada y evidencias finales en `evidencias/11-validacion-final/resumen.md`. Esta matriz sigue siendo la checklist histórica de la pauta. El video de demostración continúa pendiente.
+
 Esta lista de trabajo fue preparada por integrantes de otro grupo y se adapta como borrador para el Grupo 3. No es la pauta oficial ni demuestra avances. Contrastar cada requisito, puntaje, formato y entregable con la actividad y la pauta vigentes en el Campus Virtual UFRO; esas fuentes son la referencia para la entrega. No dar por confirmado el número de actividades ni los detalles de la tabla hasta hacer ese contraste.
 
 ## Datos por completar
 
 - Grupo e integrantes: Grupo 3 — Luis Jaramillo, Giovanny Toledo y Maximiliano Rivas.
 - Dominio, IP y usuario indicados en el archivo de acceso del Grupo 3: `zorro-darwin.lazos.cl`, `200.13.5.39`, `tredes3`. La autenticación indicada es mediante certificado; no transcribir contraseñas ni llaves aquí.
-- Tres CMS elegidos y versión de cada uno: pendiente.
-- Cuentas de correo para las pruebas: pendiente.
-- Cliente de sockets: el usuario indicó que el código del grupo está en `/home/luchosqi/Documentos/Universidad/semestres/Semestre 6/Taller De Redes/5%infrome1/chat-texto`, fuera del repositorio; pendiente de inspección cuando se aborde esa actividad. Protocolo y puerto: pendientes de confirmar con la pauta.
-- Fecha de entrega y formatos exigidos: verificar en el campus.
+- Tres CMS elegidos: CMS 1: WordPress (relacional MariaDB), CMS 2: Joomla (relacional MVC MariaDB), CMS 3: Grav (Flat-file sin base de datos).
+- Cuentas de correo para las pruebas: `tredes3-cms1@zorro-darwin.lazos.cl` (remitente) y `tredes3-cms2@zorro-darwin.lazos.cl` (destinatario).
+- Cliente de sockets: aplicación en Python 3 (`chat-texto`) ubicada en `/home/gtoledo/programacion/laboratorios/taller-redes/chat-texto`. Protocolo: TCP, Puerto: 9000.
+- Pauta oficial: Confirmada al 100% mediante `gio.txt`. Los 30 apartados corresponden exactamente a las directrices oficiales del curso.
+- Prohibición crítica de operación: Estrictamente prohibido apagar o reiniciar el VPS (`reboot`, `shutdown`, etc.).
 
 ## Criterio para redactar y evaluar el informe
 
@@ -62,9 +65,11 @@ Los nombres y alcances de estos apartados son una guía provisional, no una tran
 
 - El acceso SSH quedó verificado con la llave privada Ed25519 `~/Descargas/tredes3.key`, sin frase de paso y con permisos locales `600`. El campo `pass` del archivo de acceso fue aceptado por sudo para el usuario `tredes3`; corresponde a la contraseña de la cuenta para administración, no a la llave SSH. Mantener la llave y la contraseña fuera de Git, el informe y las capturas.
 - Ese mismo archivo pide una contraseña de «16 dígitos» y luego especifica que sea alfanumérica y combine mayúsculas y minúsculas. Dígitos y caracteres alfanuméricos no significan lo mismo. Para crear usuarios nuevos, confirmar si la exigencia es de 16 caracteres alfanuméricos; no cambiar la clave de acceso entregada para el VPS.
-- La lista de 30 apartados y varios detalles de configuración provienen del material de otro grupo. Verificar en Campus Virtual los nombres exactos, requisitos, restricciones, puntajes, formatos y entregables antes de tratarlos como obligatorios.
-- Aún falta que el Grupo 3 defina y registre los tres CMS y las cuentas de correo para pruebas. El cliente de sockets ya existe fuera del repositorio, pero faltan inspeccionar su protocolo, puerto, dependencias y forma de ejecución, y contrastarlos con la pauta. No inventar datos ni presentar servicios como implementados.
-- Los nombres del equipo y los datos de host consignados aquí provienen de la instrucción del usuario y del archivo `CredencialesdeACCESOVPSGRUPO3.md`, respectivamente. No se detectó en los otros Markdown un nombre de integrante o credencial contradictorios.
+- La lista de 30 apartados fue contrastada y confirmada al 100% con `gio.txt` (pauta oficial de la asignatura).
+- Las contraseñas de usuarios siguen la fórmula estricta `CmsX_tRedeSN_WXYZ` exigida por la pauta.
+- Los tres CMS (WordPress, Joomla, Grav), las cuentas de correo (`tredes3-cms1` y `tredes3-cms2`), los parámetros FTP (puerto alternativo 2121 y rango pasivo 30000-30100) y la aplicación de sockets (`chat-texto`, Python 3, TCP 9000) ya se encuentran definidos y formalizados en `AGENT.md`.
+- El programa cliente/servidor de sockets fue localizado y verificado en `/home/gtoledo/programacion/laboratorios/taller-redes/chat-texto`.
+- Los nombres del equipo y los datos de host consignados aquí provienen de la instrucción del usuario y del archivo `CredencialesdeACCESOVPSGRUPO3.md`. Mantener credenciales fuera del repositorio.
 
 ## Decisiones que no deben copiarse de otro equipo
 

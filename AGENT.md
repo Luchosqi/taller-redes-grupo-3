@@ -4,25 +4,74 @@ Integrantes: Luis Jaramillo, Giovanny Toledo y Maximiliano Rivas.
 
 Esta guía prepara el trabajo del Grupo 3; no acredita que una tarea se haya ejecutado. Antes de configurar servicios o redactar resultados, contrastar la actividad y la pauta vigentes en el Campus Virtual. Ningún servicio se considera instalado ni probado por aparecer aquí.
 
-## Datos que debe definir el equipo
+## Regla crítica de operación: PROHIBICIÓN DE REINICIAR O APAGAR EL VPS
 
-Datos confirmados en `CredencialesdeACCESOVPSGRUPO3.md`: Grupo 3, dominio `zorro-darwin.lazos.cl`, IP `200.13.5.39` y usuario `tredes3`. El acceso SSH se verificó con la llave privada Ed25519 `~/Descargas/tredes3.key`; conservarla en esa ubicación, con permisos `600`, y fuera del repositorio. La contraseña del archivo de acceso permite sudo; no copiarla a este documento, al informe ni a capturas. No cambiarla.
+> [!CAUTION]
+> **APAGAR O REINICIAR LA VPS ESTÁ ESTRICTAMENTE PROHIBIDO BAJO CUALQUIER CONDICIÓN.**
+> - Jamás ejecutar comandos de reinicio o apagado: `reboot`, `shutdown`, `poweroff`, `init 0`, `init 6`, `systemctl reboot`, `systemctl poweroff`.
+> - Cualquier recarga de configuración o reactivación de servicios debe realizarse exclusivamente a nivel de servicio mediante `systemctl restart <servicio>` o `systemctl reload <servicio>`.
+> - Para finalizar sesiones interactivas SSH, desconectarse siempre y únicamente con el comando `exit`.
 
-Completar cuando el equipo lo confirme: fecha de entrega, tres CMS y versiones, cuentas de correo de prueba, programa de sockets, protocolo y puerto. No copiar valores de otro grupo.
+## Parámetros y definiciones técnicas del Grupo 3
 
-El usuario informó que la aplicación cliente de sockets desarrollada por el grupo está fuera de este repositorio, en `/home/luchosqi/Documentos/Universidad/semestres/Semestre 6/Taller De Redes/5%infrome1/chat-texto`. No mover ni copiar ese material todavía. Al abordar sockets, inspeccionar allí el código, identificar lenguaje, protocolo, puerto, dependencias y forma de ejecución; después integrar en el repositorio solo los archivos necesarios, conservar el original y añadir instrucciones y pruebas de cliente-servidor. Confirmar en la pauta el protocolo y puerto requeridos antes de modificar el programa.
+1. **Acceso al VPS y credenciales base:**
+   - Grupo: 3.
+   - Dominio asignado: `zorro-darwin.lazos.cl`.
+   - Dirección IP: `200.13.5.39`.
+   - Usuario de acceso inicial: `tredes3`.
+   - Llave privada SSH: `~/Descargas/tredes3.key` (tipo Ed25519, permisos `600`, fuera del repositorio).
+   - Administración: La contraseña del archivo de acceso permite `sudo`. Mantener contraseñas y llaves estrictamente fuera de git, informe y capturas.
 
-Guardar la llave SSH y las credenciales del VPS fuera del repositorio. Anotar dónde están los respaldos, quién puede acceder a ellos y cómo se recuperan. No pegar contraseñas en este archivo.
+2. **Nomenclatura obligatoria (según pauta oficial):**
+   - **Usuarios locales (para los sitios):** `tredes3-cms1`, `tredes3-cms2`, `tredes3-cms3`.
+   - **Estructura de contraseña de usuarios:** `CmsX_tRedeSN_WXYZ` (ejemplo para CMS 1: `Cms1_tRedeS3_A7K2`). Guardar valores reales en el archivo local de credenciales fuera del repositorio.
+   - **Base de datos PowerDNS:** Nombre de base de datos `pdns_redes3`, usuario `dominio_pdns`, contraseña con formato `PdnsX_RedeSN_WXYZ` (ejemplo: `Pdns1_RedeS3_K9P2`). MariaDB debe mantenerse solo en localhost (`127.0.0.1`), prohibido exponerla a Internet.
+
+3. **Subdominios y registros DNS mínimos:**
+   - `web1.zorro-darwin.lazos.cl` (A -> `200.13.5.39`) -> CMS 1 (`tredes3-cms1`)
+   - `web2.zorro-darwin.lazos.cl` (A -> `200.13.5.39`) -> CMS 2 (`tredes3-cms2`)
+   - `web3.zorro-darwin.lazos.cl` (A -> `200.13.5.39`) -> CMS 3 (`tredes3-cms3`)
+   - `mail.zorro-darwin.lazos.cl` (A -> `200.13.5.39`) y registro `MX` para `zorro-darwin.lazos.cl` apuntando a `mail.zorro-darwin.lazos.cl`
+   - `webmail.zorro-darwin.lazos.cl` (A -> `200.13.5.39`) -> RoundCube
+   - `dnsadmin.zorro-darwin.lazos.cl` (A -> `200.13.5.39`) -> PowerAdmin
+
+4. **Definición de los tres CMS (diferenciables e independientes):**
+   - **CMS 1 (`web1` / `tredes3-cms1`): WordPress.** Plataforma relacional en PHP sobre MariaDB. Implementación verificada: base `web1_db`, usuario `web1_user`, tablas `wp3_`. Los nombres `cms1_wp/cms1_user` pertenecían a la planificación inicial y no describen el VPS.
+   - **CMS 2 (`web2` / `tredes3-cms2`): Joomla.** CMS relacional MVC en PHP sobre MariaDB. Implementación verificada: base `web2_db`, usuario `web2_user`, tablas `g3j_`. Los nombres `cms2_joomla/cms2_user` pertenecían a la planificación inicial.
+   - **CMS 3 (`web3` / `tredes3-cms3`): Grav.** CMS moderno Flat-File en PHP que no requiere base de datos relacional (almacenamiento en archivos Markdown). Permite cumplir la condición de tres arquitecturas y CMS totalmente diferentes sin recargar MariaDB.
+
+5. **Parámetros del servicio FTP (vsftpd):**
+   - Paquete: `vsftpd`.
+   - **Puerto de escucha de control:** **`2121/tcp`** (alternativo, obligatorio debido al bloqueo institucional del puerto 21 en la red UFRO).
+   - **Rango de puertos pasivos:** **`30000-30100/tcp`** (`pasv_min_port=30000`, `pasv_max_port=30100`, `pasv_address=200.13.5.39`).
+   - **Aislamiento implementado:** `chroot_local_user=YES`, `allow_writeable_chroot=NO`, `local_root=/home/$USER`; HOME `root:root 755` no escribible y `public_html` de cada CMS escribible por su propietario. La pauta exige jaula y escritura controlada, no el valor YES en esta opción.
+   - **Acceso anónimo:** Deshabilitado estrictamente (`anonymous_enable=NO`).
+   - Usuarios autorizados: `tredes3-cms1`, `tredes3-cms2`, `tredes3-cms3`, cada uno restringido a su HOME, con `public_html` como directorio web. CMS1 y CMS2 también pueden ver su propio Maildir dentro del HOME; no pueden acceder al sistema ni a otros sitios.
+   - Cortafuegos: Abrir `2121/tcp` y `30000-30100/tcp` en `firewalld`.
+
+6. **Servicio de correo electrónico y cuentas de prueba:**
+   - MTA: Postfix + Acceso IMAP: Dovecot + Webmail: RoundCube.
+   - Cuentas de prueba para validar el flujo completo (remitente -> destinatario -> envío -> recepción):
+     - **Remitente:** `tredes3-cms1@zorro-darwin.lazos.cl`
+     - **Destinatario:** `tredes3-cms2@zorro-darwin.lazos.cl`
+     - (Buzón administrativo adicional `admin@zorro-darwin.lazos.cl`: previsto en el plan, no demostrado ni declarado como implementado en el informe).
+
+7. **Aplicación cliente-servidor mediante sockets:**
+   - **Ubicación local confirmada:** `/home/gtoledo/programacion/laboratorios/taller-redes/chat-texto`.
+   - **Archivos:** `servidor.py`, `cliente.py`, `README.md`.
+   - **Lenguaje y dependencias:** Python 3 (biblioteca estándar: `socket`, `threading`; no requiere librerías externas ni entornos virtuales).
+   - **Protocolo:** TCP.
+   - **Puerto:** **`9000/tcp`** (parámetro `PUERTO = 9000` en ambos scripts; requiere apertura en `firewalld` en el VPS).
+   - **Despliegue:** El archivo `servidor.py` se transfiere al VPS y se deja en ejecución en background; el cliente `cliente.py` se ejecuta desde la máquina del alumno apuntando a `zorro-darwin.lazos.cl` (o `200.13.5.39`).
 
 ## Antes de trabajar en el VPS
 
-1. Leer `REVISION_PAUTA_CAMPUS.md`, la pauta original y el estado actual del informe. Si ya existe un repositorio, comprobar `git status` y la rama activa. Si aún no existe, excluir primero el archivo de acceso y crear el repositorio sin secretos.
-2. Confirmar por SSH el estado real del VPS. No reutilizar capturas, versiones, direcciones ni salidas de consola de otro equipo.
-3. Respaldar cada archivo de configuración antes de modificarlo y descargar una copia. Para bases de datos, guardar un volcado previo cuando el cambio pueda afectar sus datos.
+1. Leer `REVISION_PAUTA_CAMPUS.md`, la pauta oficial (`/home/gtoledo/programacion/laboratorios/taller-redes/gio.txt`) y el estado actual del informe.
+2. Confirmar por SSH el estado real del VPS sin ejecutar comandos destructivos ni de reinicio.
+3. Respaldar cada archivo de configuración antes de modificarlo y descargar una copia local. Para bases de datos, guardar un volcado (`mysqldump`) previo.
 4. Verificar que SSH siga disponible antes y después de cambios en el cortafuegos. No cerrar el puerto 22 ni detener `sshd`.
-5. Mantener SELinux en modo `Enforcing`. Resolver denegaciones con contextos, booleanos o etiquetas de puerto, dejando constancia de lo aplicado.
-
-No cambiar la contraseña de la cuenta principal entregada para el VPS ni modificar `sshd_config` sin una instrucción expresa del responsable del equipo. MariaDB no debe quedar expuesta a Internet. Evitar permisos `777`, FTP anónimo y cualquier ajuste que rompa el aislamiento de los sitios.
+5. Mantener SELinux estrictamente en modo `Enforcing`. Prohibido deshabilitar o desinstalar SELinux. Resolver denegaciones con contextos (`semanage fcontext`, `restorecon`), booleanos (`setsebool -P`) o etiquetas de puerto (`semanage port`).
+6. No cambiar la contraseña de la cuenta principal entregada para el VPS ni modificar `sshd_config`. MariaDB no debe quedar expuesta a Internet. Evitar permisos `777`, FTP anónimo y cualquier ajuste que rompa el aislamiento de los sitios.
 
 ## Informe y evidencias
 

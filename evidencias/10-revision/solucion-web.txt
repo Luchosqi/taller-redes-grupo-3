@@ -1,0 +1,26 @@
+GRUPO 3 | Apache y tres CMS publicados
+Validación real: 2026-09-26T21:19:10-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ httpd -S 2>&1 | grep 'namevhost'
+         port 80 namevhost web1.zorro-darwin.lazos.cl (/etc/httpd/conf.d/cms-sites.conf:1)
+         port 80 namevhost web2.zorro-darwin.lazos.cl (/etc/httpd/conf.d/cms-sites.conf:12)
+         port 80 namevhost web3.zorro-darwin.lazos.cl (/etc/httpd/conf.d/cms-sites.conf:23)
+         port 80 namevhost dnsadmin.zorro-darwin.lazos.cl (/etc/httpd/conf.d/dnsadmin.conf:1)
+         port 80 namevhost webmail.zorro-darwin.lazos.cl (/etc/httpd/conf.d/webmail.conf:1)
+[salida 0]
+
+$ mysql -N -e "SELECT COUNT(*),MIN(title) FROM web2_db.g3j_content;"
+1	Conservación del bosque nativo en La Araucanía
+[salida 0]
+
+$ stat -c '%U:%G %a %n' /home/tredes3-cms{1,2,3}/public_html
+tredes3-cms1:tredes3-cms1 755 /home/tredes3-cms1/public_html
+tredes3-cms2:tredes3-cms2 755 /home/tredes3-cms2/public_html
+tredes3-cms3:tredes3-cms3 755 /home/tredes3-cms3/public_html
+[salida 0]
+
+$ pdnsutil zone check zorro-darwin.lazos.cl
+Checked 11 records of 'zorro-darwin.lazos.cl', 0 errors, 0 warnings.
+[salida 0]
+

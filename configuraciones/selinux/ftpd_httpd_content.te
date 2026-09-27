@@ -1,0 +1,12 @@
+module ftpd_httpd_content 1.0;
+
+require {
+  type ftpd_t;
+  type httpd_sys_content_t;
+  class dir { add_name remove_name write };
+  class file { create getattr open read write append unlink rename setattr };
+}
+
+# FTP puede modificar contenido web; DAC y chroot aíslan cada cuenta.
+allow ftpd_t httpd_sys_content_t:dir { add_name remove_name write };
+allow ftpd_t httpd_sys_content_t:file { create getattr open read write append unlink rename setattr };

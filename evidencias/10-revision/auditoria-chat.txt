@@ -1,0 +1,21 @@
+GRUPO 3 | Chat: registro de dos sesiones consecutivas
+Validación real: 2026-09-26T20:29:27-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ systemctl is-active chat-texto
+active
+[salida 0]
+
+$ journalctl -u chat-texto --no-pager -n 10 -o cat
+Started Servidor de chat de texto TCP del Taller de Redes.
+Esperando conexiones en 0.0.0.0:9000
+Cliente conectado desde 190.160.238.202:43706
+Cliente: Mensaje de prueba local G3 - sesion 1
+Servidor: Respuesta VPS G3 - sesion 1
+Cliente desconectado; sesión liberada.
+Cliente conectado desde 190.160.238.202:43718
+Cliente: Mensaje de prueba local G3 - sesion 2
+Servidor: Respuesta VPS G3 - sesion 2
+Cliente desconectado; sesión liberada.
+[salida 0]
+

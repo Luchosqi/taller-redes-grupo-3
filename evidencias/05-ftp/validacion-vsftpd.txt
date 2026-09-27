@@ -1,0 +1,35 @@
+Actividad 7 — vsftpd
+Fecha de validación: 2026-09-26 (VPS, Europe/Madrid)
+
+Configuración:
+- vsftpd 3.0.5 activo, escucha en 0.0.0.0:2121/tcp.
+- Anónimo deshabilitado; lista de acceso local solo incluye tredes3-cms1,
+  tredes3-cms2 y tredes3-cms3.
+- Rango pasivo configurado 30000–30100/tcp y dirección pública asignada.
+- `chroot_local_user=YES`; `allow_writeable_chroot=NO`.
+- Cada HOME de usuario es root:root 755, no escribible en la raíz de la jaula;
+  su `public_html` es propietario del CMS y sirve como destino de subida web.
+- `secure_chroot_dir=/run/vsftpd/empty`; regla tmpfiles propia en
+  `/etc/tmpfiles.d/vsftpd-local.conf` recrea la ruta en el arranque.
+- SELinux sigue Enforcing. `ftpd_use_passive_mode` está on; `ftpd_anon_write`
+  y `ftpd_full_access` permanecen off. Los puertos tienen tipos SELinux
+  `ftp_port_t` (2121) y `ftp_data_port_t` (30000–30100).
+- firewalld `public`: 2121/tcp y 30000–30100/tcp añadidos permanentemente.
+
+Pruebas desde la máquina de trabajo:
+- `curl --list-only` autenticado por FTP para los tres usuarios: cada uno accedió a su propia jaula; los tres ven `public_html`, y CMS1/CMS2
+  también ven su propio `Maildir` privado (modo 700), creado en la fase de correo.
+  Ninguno puede recorrer fuera de su HOME.
+- Acceso FTP anónimo rechazado: respuesta 530.
+- `tredes3-cms1` subió `ftp-evidencia.txt` a `public_html` en el canal pasivo.
+- El archivo resultante se obtuvo con HTTP desde
+  `http://web1.zorro-darwin.lazos.cl/ftp-evidencia.txt`: HTTP 200, 193 bytes;
+  `cmp` confirmó que coincide con `archivo-prueba-ftp.txt` del repositorio.
+- `evidencias/05-ftp/archivo-prueba-ftp.txt` es el archivo de origen publicado.
+
+Respaldo de configuración original antes del cambio:
+- `/home/tredes3/vps-backups/2026-09-26/vsftpd-before.conf`.
+
+En la instalación inicial faltaba la ruta secure_chroot_dir requerida por
+vsftpd; se creó en `/run` y se añadió la regla tmpfiles para persistirla entre
+arranques, sin reiniciar ni apagar el VPS.

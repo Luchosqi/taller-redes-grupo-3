@@ -1,0 +1,26 @@
+# Evidencia — Actividades 9 y 10: firewalld y SELinux
+
+Fecha: 2026-09-26. Zona activa y permanente: `public`.
+
+## Firewall aplicado
+
+- Servicios: `ssh` (administración), `http` (sitios, dnsadmin y RoundCube), `dhcpv6-client` (servicio auxiliar preexistente).
+- TCP 53 y UDP 53: consultas autoritativas DNS; comprobados desde fuera contra `200.13.5.39` con `dig` por UDP y `dig +tcp`, ambos `NOERROR` y respuesta autoritativa.
+- TCP 25: recepción SMTP/MX; conexión externa alcanzable.
+- TCP 993: IMAPS; conexión externa alcanzable.
+- TCP 2121 y TCP 30000–30100: FTP de control y rango pasivo; ya comprobados con login y transferencia.
+- TCP 9000: servidor de chat de la Actividad 11; añadido posteriormente y validado con conversación desde el cliente local.
+- `cockpit` fue retirado y el puerto duplicado explícito `80/tcp` se quitó (el servicio `http` ya habilita 80). El puerto 9090 no quedó expuesto.
+- La regla efectiva coincide con la configuración permanente. No se abrió IMAP 143 hacia Internet; RoundCube lo usa localmente.
+
+## SELinux
+
+- `getenforce`: `Enforcing`.
+- `httpd_can_network_connect`: off; `httpd_can_network_connect_db`: on; `httpd_enable_homedirs`: on.
+- `ftpd_use_passive_mode`: on; `ftpd_full_access` y `ftpd_anon_write`: off.
+- `postfix_local_write_mail_spool`: on.
+- Se verificaron los contextos persistentes de los tres `public_html` y las rutas de escritura CMS, RoundCube temp/log: `matchpathcon -V` confirmó que coinciden después de `restorecon -RFv` aplicado a los tres árboles web.
+- El módulo local `roundcube_http_mail` permite conectividad HTTPD acotada a los tipos de puerto IMAP/SMTP necesarios; no se habilitó el booleano general de conectividad web.
+- Verificaciones de HTTP posteriores al relabel: web1, web2 y web3 HTTP 200; webmail HTTP 200; dnsadmin redirige al formulario de login (302 esperado). El archivo subido por FTP sigue accesible y su contenido coincide con el original.
+
+Respaldo de la zona firewalld anterior a la edición: `/home/tredes3/vps-backups/2026-09-26/firewall-before/public.xml`.

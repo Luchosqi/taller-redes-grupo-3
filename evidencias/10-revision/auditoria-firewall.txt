@@ -1,0 +1,29 @@
+GRUPO 3 | Firewall y SELinux: estado observable
+Validación real: 2026-09-26T20:28:33-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ getenforce; firewall-cmd --list-services; firewall-cmd --list-ports
+Enforcing
+dhcpv6-client http ssh
+25/tcp 53/tcp 993/tcp 2121/tcp 9000/tcp 30000-30100/tcp 53/udp
+[salida 0]
+
+$ getsebool httpd_can_network_connect httpd_can_network_connect_db httpd_enable_homedirs ftpd_full_access ftpd_anon_write ftpd_use_passive_mode
+httpd_can_network_connect --> off
+httpd_can_network_connect_db --> on
+httpd_enable_homedirs --> on
+ftpd_full_access --> off
+ftpd_anon_write --> off
+ftpd_use_passive_mode --> on
+[salida 0]
+
+$ grep -E '^(listen_port|anonymous_enable|chroot_local_user|allow_writeable_chroot|pasv_min_port|pasv_max_port|write_enable)=' /etc/vsftpd/vsftpd.conf
+listen_port=2121
+anonymous_enable=NO
+write_enable=YES
+pasv_min_port=30000
+pasv_max_port=30100
+chroot_local_user=YES
+allow_writeable_chroot=NO
+[salida 0]
+

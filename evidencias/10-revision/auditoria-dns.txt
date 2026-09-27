@@ -1,0 +1,24 @@
+GRUPO 3 | DNS: registros y ausencia de A en la raíz
+Validación real: 2026-09-26T20:28:22-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ dig @127.0.0.1 zorro-darwin.lazos.cl A +noall +comments +answer
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 29683
+;; flags: qr aa rd; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+;; WARNING: recursion requested but not available
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+[salida 0]
+
+$ dig @127.0.0.1 zorro-darwin.lazos.cl MX +short; dig @127.0.0.1 zorro-darwin.lazos.cl NS +short
+10 mail.zorro-darwin.lazos.cl.
+ns1.zorro-darwin.lazos.cl.
+[salida 0]
+
+$ dig @127.0.0.1 web1.zorro-darwin.lazos.cl A +short; dig @127.0.0.1 _revision.zorro-darwin.lazos.cl TXT +short
+200.13.5.39
+"verificacion-grupo3"
+[salida 0]
+

@@ -1,0 +1,32 @@
+Actividad 2 — Usuarios locales y directorios
+Fecha: 2026-09-26
+Origen: VPS Grupo 3 (200.13.5.39)
+
+Comprobaciones ejecutadas:
+
+    getent passwd tredes3-cms1 tredes3-cms2 tredes3-cms3
+    sudo passwd -S <usuario>
+    sudo stat -c '%U:%G %a %n' <directorio>
+
+Resultado de cuentas:
+
+    tredes3-cms1:x:1001:1001::/home/tredes3-cms1:/bin/bash
+    tredes3-cms2:x:1002:1002::/home/tredes3-cms2:/bin/bash
+    tredes3-cms3:x:1003:1003::/home/tredes3-cms3:/bin/bash
+
+Las tres contraseñas quedaron establecidas (estado PS; hash SHA512 crypt). Los
+valores no se incluyen en esta evidencia; se guardaron localmente fuera del
+repositorio con permisos 600.
+
+Propiedad y permisos observados:
+
+    root:root 755 /home/tredes3-cms1 (cambiado en Fase 4 para chroot no escribible)
+    tredes3-cms1:tredes3-cms1 755 /home/tredes3-cms1/public_html
+    root:root 755 /home/tredes3-cms2 (cambiado en Fase 4 para chroot no escribible)
+    tredes3-cms2:tredes3-cms2 755 /home/tredes3-cms2/public_html
+    root:root 755 /home/tredes3-cms3 (cambiado en Fase 4 para chroot no escribible)
+    tredes3-cms3:tredes3-cms3 755 /home/tredes3-cms3/public_html
+
+Cada HOME es raíz de jaula FTP y no es modificable por el usuario FTP. Apache
+puede recorrer los HOME y leer los sitios, pero no su contenido ajeno. Cada
+`public_html` pertenece a su usuario. No se usaron permisos 777.

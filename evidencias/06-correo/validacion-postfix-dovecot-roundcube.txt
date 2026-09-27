@@ -1,0 +1,20 @@
+# Evidencia — Correo Postfix, Dovecot y RoundCube
+
+Fecha: 2026-09-26. Dominio: `zorro-darwin.lazos.cl`.
+
+## Servicios y configuración comprobados
+
+- Postfix 3.5.25 activo, SMTP en TCP/25; `postfix check` sin errores.
+- Dovecot 2.3.16 activo con IMAP e IMAPS; buzones Maildir locales para `tredes3-cms1` y `tredes3-cms2`.
+- RoundCube 1.7.4 desplegado en `webmail.zorro-darwin.lazos.cl`; respuesta HTTP 200 y título `Grupo 3 - Webmail`.
+- La autenticación IMAP de ambas cuentas pasó mediante `doveadm auth test`; el inicio de sesión desde RoundCube para CMS2 quedó registrado por Dovecot usando TLS desde loopback.
+- El formulario AJAX de RoundCube devolvió HTTP 200 e incluyó el asunto y remitente del mensaje recibido por CMS2.
+- Certificado TLS autofirmado instalado para SMTP/IMAP. La configuración de la base de datos RoundCube y su secreto permanecen fuera de esta evidencia.
+
+## Entrega entre cuentas
+
+1. CMS1 envió un mensaje a CMS2 con asunto `Prueba Grupo 3 Postfix-Dovecot`; el registro de Postfix confirmó `status=sent`, entrega Maildir, y Dovecot informó un mensaje en INBOX de CMS2.
+2. CMS2 respondió a CMS1 con asunto `Respuesta Grupo 3 CMS2 a CMS1`; Postfix confirmó entrega y Dovecot mostró el mensaje en INBOX de CMS1.
+3. `doveadm fetch` verificó remitentes correspondientes en ambos buzones. RoundCube mostró el mensaje del CMS1 dentro del buzón autenticado de CMS2.
+
+Los puertos de correo aún no se habían incorporado al firewall al capturar estas pruebas locales; se abrirán y verificarán en la Actividad 9.

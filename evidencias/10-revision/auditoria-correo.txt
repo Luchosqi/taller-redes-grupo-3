@@ -1,0 +1,25 @@
+GRUPO 3 | RoundCube: envío fallido y puertos activos
+Validación real: 2026-09-26T20:28:27-03:00
+Origen: equipo local -> VPS 200.13.5.39 por SSH
+
+$ ss -lnt | grep -E ':(25|143|993)[[:space:]]'
+LISTEN 0      100          0.0.0.0:993       0.0.0.0:*   
+LISTEN 0      100          0.0.0.0:143       0.0.0.0:*   
+LISTEN 0      100          0.0.0.0:25        0.0.0.0:*   
+LISTEN 0      100             [::]:993          [::]:*   
+LISTEN 0      100             [::]:143          [::]:*
+[salida 0]
+
+$ grep -E 'smtp_(host|server|port)' /var/www/roundcube/config/config.inc.php
+$config['smtp_server'] = '127.0.0.1';
+$config['smtp_port'] = 25;
+[salida 0]
+
+$ grep -E '^\$config.*smtp_host' /var/www/roundcube/config/defaults.inc.php
+$config['smtp_host'] = 'localhost:587';
+[salida 0]
+
+$ grep 'SMTP Error: Connection failed' /var/log/roundcube/errors.log | tail -1
+[26-Sep-2026 22:16:36 +0000]: <p58vkb3a> SMTP Error: Connection failed:  (Code: -1) in /var/www/roundcube/program/lib/Roundcube/rcube.php on line 1833 (POST /?_task=mail&_unlock=loading1790460996202&_framed=1&_action=send)
+[salida 0]
+

@@ -1,0 +1,45 @@
+CMS2 POST-SEND: Compose
+Mail
+Contacts
+Settings
+Dark mode
+About
+Logout
+tredes3-cms2@zorro-darwin.lazos.cl
+Inbox
+Sent
+Select
+Threads
+Options
+Refresh
+Mailbox is empty
+Reply
+Reply all
+Forward
+Delete
+Mark
+More
+Loading...
+CMS1 READ: Redactar
+Correo
+Contactos
+Configuración
+Modo oscuro
+Acerca de
+Cerrar sesión
+Responder
+Responder a todos
+Reenviar
+Eliminar
+Imprimir
+Marcar
+Más
+Anterior
+Siguiente
+Respuesta: Prueba RoundCube Grupo 3 - 27 septiembre 2026 
+De tredes3-cms2@zorro-darwin.lazos.cl el 2026-09-26 21:05
+Detalles Cabeceras
+Confirmo recepción en el buzón CMS2 mediante RoundCube.
+Respuesta de CMS2 a CMS1 para el Grupo 3.
+
+Cargando...

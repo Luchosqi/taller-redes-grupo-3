@@ -1,0 +1,3 @@
+Alta TXT desde PowerAdmin autenticado.
+$ dig @200.13.5.39 _revision.zorro-darwin.lazos.cl TXT +short
+"verificacion-grupo3"

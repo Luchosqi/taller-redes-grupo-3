@@ -1,0 +1,12 @@
+# Evidencia — Actividad 11: chat TCP
+
+Fecha: 2026-09-26.
+
+- Se transfirió el `servidor.py` original a `/home/tredes3/programacion/laboratorios/taller-redes/chat-texto/servidor.py` en el VPS. El código fuente de origen quedó intacto.
+- La unidad `chat-texto.service` corre como `tredes3`, está habilitada y activa; Python escucha en `0.0.0.0:9000`.
+- El firewall permite TCP/9000. La conexión se inició desde la máquina local a `200.13.5.39:9000` con el `cliente.py` original, apuntando al VPS mediante una asignación en tiempo de ejecución; no se alteró el cliente del repositorio fuente.
+- El servidor registró `Cliente: Mensaje de prueba desde cliente local Grupo 3` y la consola del cliente mostró `Servidor: Respuesta desde servidor VPS Grupo 3`.
+- Para conservar el servidor en background aunque su implementación use `input()`, `chat-texto.service` abre la entrada mediante FIFO en `/run/chat-texto/chat.stdin`. Esto mantiene el programa original y permite inyectar las respuestas desde la sesión administrativa.
+- La unidad quedó activa y el puerto continuó en LISTEN después de cerrar la conexión probada. Registro de servicio: `systemctl status chat-texto`; puerto: `ss -lntp`.
+
+Respaldo de la primera unidad antes del ajuste de stdin: `/home/tredes3/vps-backups/2026-09-26/sockets-before/chat-texto.service`.
