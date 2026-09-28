@@ -1,0 +1,322 @@
+PRUEBA DE TERMINAL | Cliente externo: home | 2026-09-28T17:21:38-03:00
+Consultas directas a PowerDNS, recursivas a 1.1.1.1 y delegación del padre.
+
+$ dig +short NS lazos.cl
+owen.ns.cloudflare.com.
+dell.ns.cloudflare.com.
+[salida 0]
+
+$ dig @dell.ns.cloudflare.com +norecurse +noall +comments +answer +authority +additional zorro-darwin.lazos.cl NS
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 51224
+;; flags: qr; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; AUTHORITY SECTION:
+zorro-darwin.lazos.cl.	300	IN	NS	zorro-darwin-ns.lazos.cl.
+
+;; ADDITIONAL SECTION:
+zorro-darwin-ns.lazos.cl. 300	IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @owen.ns.cloudflare.com +norecurse +noall +comments +answer +authority +additional zorro-darwin.lazos.cl NS
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 59085
+;; flags: qr; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; AUTHORITY SECTION:
+zorro-darwin.lazos.cl.	300	IN	NS	zorro-darwin-ns.lazos.cl.
+
+;; ADDITIONAL SECTION:
+zorro-darwin-ns.lazos.cl. 300	IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer zorro-darwin.lazos.cl NS
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 251
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	3600	IN	NS	ns1.zorro-darwin.lazos.cl.
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer zorro-darwin.lazos.cl SOA
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 27049
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	3600	IN	SOA	ns1.zorro-darwin.lazos.cl. hostmaster.zorro-darwin.lazos.cl. 2026092602 10800 3600 604800 3600
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer ns1.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 5001
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+ns1.zorro-darwin.lazos.cl. 3600	IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer zorro-darwin.lazos.cl MX
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 54965
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	3600	IN	MX	10 mail.zorro-darwin.lazos.cl.
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer mail.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 34526
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+mail.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 27914
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	300	IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @1.1.1.1 +noall +comments +answer zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 7449
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	300	IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer web1.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 63237
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+web1.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @1.1.1.1 +noall +comments +answer web1.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 9638
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+web1.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer web2.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 59352
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+web2.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @1.1.1.1 +noall +comments +answer web2.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 2111
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+web2.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer web3.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 59547
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+web3.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @1.1.1.1 +noall +comments +answer web3.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 47318
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+web3.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer mail.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 13525
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+mail.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @1.1.1.1 +noall +comments +answer mail.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 26749
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+mail.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer webmail.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 61934
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+webmail.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @1.1.1.1 +noall +comments +answer webmail.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 1691
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+webmail.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer dnsadmin.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 29756
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+dnsadmin.zorro-darwin.lazos.cl.	3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @1.1.1.1 +noall +comments +answer dnsadmin.zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 37121
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+dnsadmin.zorro-darwin.lazos.cl.	3600 IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @1.1.1.1 +noall +comments +answer zorro-darwin.lazos.cl MX
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 49383
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	3600	IN	MX	10 mail.zorro-darwin.lazos.cl.
+
+[salida 0]
+
+$ dig @200.13.5.39 +notcp +norecurse +noall +comments +answer zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 36429
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	300	IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +tcp +norecurse +noall +comments +answer zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 45340
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	300	IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +tcp +norecurse +noall +comments +answer zorro-darwin.lazos.cl SOA
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 36069
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	3600	IN	SOA	ns1.zorro-darwin.lazos.cl. hostmaster.zorro-darwin.lazos.cl. 2026092602 10800 3600 604800 3600
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer _auditoria-g3-20260928.zorro-darwin.lazos.cl TXT
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 9393
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+[salida 0]

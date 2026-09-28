@@ -1,0 +1,130 @@
+PRUEBA DE TERMINAL | VPS: tredes3@200.13.5.39 | tomada desde home 2026-09-28T17:21:38-03:00
+Comandos ejecutados por SSH en el VPS; la fecha remota aparece abajo.
+
+$ date -Is; hostname; systemctl is-active pdns mariadb
+2026-09-28T22:21:42+02:00
+localhost.localdomain
+active
+active
+[salida 0]
+
+$ dig @127.0.0.1 +norecurse +noall +comments +answer zorro-darwin.lazos.cl SOA; dig @127.0.0.1 +norecurse +noall +comments +answer zorro-darwin.lazos.cl NS; dig @127.0.0.1 +norecurse +noall +comments +answer zorro-darwin.lazos.cl MX
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 59312
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	3600	IN	SOA	ns1.zorro-darwin.lazos.cl. hostmaster.zorro-darwin.lazos.cl. 2026092602 10800 3600 604800 3600
+
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 58424
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	3600	IN	NS	ns1.zorro-darwin.lazos.cl.
+
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 14155
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 2
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	3600	IN	MX	10 mail.zorro-darwin.lazos.cl.
+
+[salida 0]
+
+$ for n in zorro-darwin.lazos.cl ns1.zorro-darwin.lazos.cl web1.zorro-darwin.lazos.cl web2.zorro-darwin.lazos.cl web3.zorro-darwin.lazos.cl mail.zorro-darwin.lazos.cl webmail.zorro-darwin.lazos.cl dnsadmin.zorro-darwin.lazos.cl; do dig @127.0.0.1 +norecurse +noall +answer "$n" A; done
+zorro-darwin.lazos.cl.	300	IN	A	200.13.5.39
+ns1.zorro-darwin.lazos.cl. 3600	IN	A	200.13.5.39
+web1.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+web2.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+web3.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+mail.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+webmail.zorro-darwin.lazos.cl. 3600 IN	A	200.13.5.39
+dnsadmin.zorro-darwin.lazos.cl.	3600 IN	A	200.13.5.39
+[salida 0]
+
+$ dig @127.0.0.1 +tcp +norecurse +noall +comments +answer zorro-darwin.lazos.cl A; ss -lnut | grep -E ':53[[:space:]]'
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 55219
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	300	IN	A	200.13.5.39
+
+udp   UNCONN 0      0            0.0.0.0:53        0.0.0.0:*
+tcp   LISTEN 0      128          0.0.0.0:53        0.0.0.0:*
+[salida 0]
+
+$ firewall-cmd --get-active-zones; firewall-cmd --list-services; firewall-cmd --list-ports; firewall-cmd --permanent --list-ports; firewall-cmd --query-port=53/tcp; firewall-cmd --query-port=53/udp
+public
+  interfaces: ens18
+dhcpv6-client http ssh
+25/tcp 53/tcp 993/tcp 2121/tcp 9000/tcp 30000-30100/tcp 53/udp
+25/tcp 53/tcp 993/tcp 2121/tcp 9000/tcp 30000-30100/tcp 53/udp
+yes
+yes
+[salida 0]
+
+$ pdnsutil zone check zorro-darwin.lazos.cl; mariadb -e "SELECT VERSION() AS version, @@bind_address AS bind_address; SHOW DATABASES LIKE 'pdns_redes3'; SELECT name, type, content FROM pdns_redes3.records ORDER BY name,type;"
+Checked 11 records of 'zorro-darwin.lazos.cl', 0 errors, 0 warnings.
+version	bind_address
+10.11.19-MariaDB	127.0.0.1
+Database (pdns_redes3)
+pdns_redes3
+name	type	content
+dnsadmin.zorro-darwin.lazos.cl	A	200.13.5.39
+mail.zorro-darwin.lazos.cl	A	200.13.5.39
+ns1.zorro-darwin.lazos.cl	A	200.13.5.39
+web1.zorro-darwin.lazos.cl	A	200.13.5.39
+web2.zorro-darwin.lazos.cl	A	200.13.5.39
+web3.zorro-darwin.lazos.cl	A	200.13.5.39
+webmail.zorro-darwin.lazos.cl	A	200.13.5.39
+zorro-darwin.lazos.cl	A	200.13.5.39
+zorro-darwin.lazos.cl	MX	mail.zorro-darwin.lazos.cl
+zorro-darwin.lazos.cl	NS	ns1.zorro-darwin.lazos.cl
+zorro-darwin.lazos.cl	SOA	ns1.zorro-darwin.lazos.cl hostmaster.zorro-darwin.lazos.cl 2026092602 10800 3600 604800 3600
+[salida 0]
+
+$ awk -F= '/^(launch|gmysql-host|gmysql-dbname|gmysql-user|gmysql-password)=/{if ($1 ~ /password/) print $1"=[OCULTA]"; else print}' /etc/pdns/pdns.conf
+launch=gmysql
+gmysql-host=127.0.0.1
+gmysql-dbname=pdns_redes3
+gmysql-user=dominio_pdns
+gmysql-password=[OCULTA]
+[salida 0]
+
+$ mariadb -e "SELECT User,Host FROM mysql.user WHERE User='dominio_pdns'; SELECT GRANTEE,TABLE_SCHEMA,PRIVILEGE_TYPE FROM information_schema.SCHEMA_PRIVILEGES WHERE GRANTEE LIKE '%dominio_pdns%' ORDER BY TABLE_SCHEMA,PRIVILEGE_TYPE; SELECT GRANTEE,PRIVILEGE_TYPE FROM information_schema.USER_PRIVILEGES WHERE GRANTEE LIKE '%dominio_pdns%';"; ss -lnt | grep ':3306 '
+User	Host
+dominio_pdns	127.0.0.1
+GRANTEE	TABLE_SCHEMA	PRIVILEGE_TYPE
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	ALTER
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	ALTER ROUTINE
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	CREATE
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	CREATE ROUTINE
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	CREATE TEMPORARY TABLES
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	CREATE VIEW
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	DELETE
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	DELETE HISTORY
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	DROP
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	EVENT
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	EXECUTE
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	INDEX
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	INSERT
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	LOCK TABLES
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	REFERENCES
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	SELECT
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	SHOW VIEW
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	TRIGGER
+'dominio_pdns'@'127.0.0.1'	pdns_redes3	UPDATE
+GRANTEE	PRIVILEGE_TYPE
+'dominio_pdns'@'127.0.0.1'	USAGE
+LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*
+[salida 0]
