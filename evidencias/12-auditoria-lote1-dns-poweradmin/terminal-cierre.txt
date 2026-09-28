@@ -1,0 +1,57 @@
+PRUEBA DE TERMINAL | Cierre del Lote 1 | cliente home | 2026-09-28T17:36:16-03:00
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer zorro-darwin.lazos.cl SOA
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 41357
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	3600	IN	SOA	ns1.zorro-darwin.lazos.cl. hostmaster.zorro-darwin.lazos.cl. 2026092801 10800 3600 604800 3600
+
+[salida 0]
+
+$ dig @200.13.5.39 +tcp +norecurse +noall +comments +answer zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 12827
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	300	IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @1.1.1.1 +noall +comments +answer zorro-darwin.lazos.cl A
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 8719
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+zorro-darwin.lazos.cl.	228	IN	A	200.13.5.39
+
+[salida 0]
+
+$ dig @200.13.5.39 +norecurse +noall +comments +answer _auditoria-g3-20260928.zorro-darwin.lazos.cl TXT
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 47319
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+[salida 0]
+
+VPS tredes3@200.13.5.39 | $ sudo sh -c date -Is; systemctl is-active pdns; pdnsutil zone check zorro-darwin.lazos.cl; mariadb -N -e "SELECT COUNT(*) FROM pdns_redes3.records; SELECT COUNT(*) FROM pdns_redes3.records WHERE name='_auditoria-g3-20260928.zorro-darwin.lazos.cl'; SELECT COUNT(*) FROM pdns_redes3.users WHERE username='audit_g3_20260928';"; firewall-cmd --query-port=53/tcp; firewall-cmd --query-port=53/udp
+2026-09-28T22:36:17+02:00
+active
+Checked 11 records of 'zorro-darwin.lazos.cl', 0 errors, 0 warnings.
+11
+0
+0
+yes
+yes
+[salida 0]

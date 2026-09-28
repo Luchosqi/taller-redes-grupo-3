@@ -1,0 +1,57 @@
+PRUEBAS DE TERMINAL E INTERFAZ | Cliente externo | 2026-09-28T17:32:21-03:00
+PowerAdmin se abrió con navegador real por túnel SOCKS5 SSH. El TXT fue creado en su formulario; las capturas muestran formulario, registro publicado y tabla final.
+La cuenta temporal y el volcado previo permanecieron fuera del repositorio.
+
+[TXT creado por PowerAdmin, tras purga de caché negativa] 2026-09-28T17:32:21-03:00
+$ dig @200.13.5.39 +norecurse +noall +comments +answer _auditoria-g3-20260928.zorro-darwin.lazos.cl TXT
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 62562
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+_auditoria-g3-20260928.zorro-darwin.lazos.cl. 300 IN TXT "lote1-auditoria-g3-20260928"
+
+[salida 0]
+
+Captura de navegador poweradmin-txt-creado.png | URL http://dnsadmin.zorro-darwin.lazos.cl/zones/1/edit?search=&record_type=TXT&content=
+La captura de la confirmación de borrado se descartó: X11 aún mostraba la página anterior. La selección exacta del TXT se comprobó por el DOM antes de confirmar.
+Captura de navegador poweradmin-zona-final-completa.png | URL http://dnsadmin.zorro-darwin.lazos.cl/zones/1/edit?rows_per_page=20
+[inmediatamente después de borrar en la interfaz] 2026-09-28T17:32:30-03:00
+$ dig @200.13.5.39 +norecurse +noall +comments +answer _auditoria-g3-20260928.zorro-darwin.lazos.cl TXT
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 63577
+;; flags: qr aa; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; ANSWER SECTION:
+_auditoria-g3-20260928.zorro-darwin.lazos.cl. 300 IN TXT "lote1-auditoria-g3-20260928"
+
+[salida 0]
+
+[VPS] 2026-09-28T17:32:31-03:00
+$ pdns_control purge _auditoria-g3-20260928.zorro-darwin.lazos.cl
+3
+[salida 0]
+
+[después de purgar la caché positiva] 2026-09-28T17:32:31-03:00
+$ dig @200.13.5.39 +norecurse +noall +comments +answer _auditoria-g3-20260928.zorro-darwin.lazos.cl TXT
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 417
+;; flags: qr aa; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+[salida 0]
+
+[VPS] 2026-09-28T17:32:32-03:00
+$ pdnsutil zone check zorro-darwin.lazos.cl
+Checked 11 records of 'zorro-darwin.lazos.cl', 0 errors, 0 warnings.
+[salida 0]
+
+
+[Verificación visual posterior] 2026-09-28T17:33:57-03:00
+Se volvió a abrir /zones/1/edit?rows_per_page=20 en el navegador real tras el borrado. La tabla mostró 11 filas y ningún TXT temporal. Se sustituyó la captura final por poweradmin-zona-final-completa.png para reflejar la página ya renderizada.
+La cuenta administradora temporal usada para esta prueba se eliminó de pdns_redes3.users: 1 fila eliminada, 0 remanentes. El archivo local con su clave también se retiró.
