@@ -2,7 +2,9 @@
 \usepackage[spanish,es-nodecimaldot]{babel}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{geometry,graphicx,booktabs,tabularx,hyperref,xcolor}
+\usepackage{geometry,graphicx,booktabs,tabularx,hyperref,xcolor,caption}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,babel}
 \geometry{margin=2.3cm}
 \hypersetup{colorlinks=true,urlcolor=blue!55!black}
 \setlength{\parskip}{.55em}
@@ -25,29 +27,70 @@
 \begin{tabular}{rl}
 Integrantes: & Luis Jaramillo, Giovanny Toledo y Maximiliano Rivas\\
 Profesor: & Flavio Rojas Acuña\\
-Fecha de revisión: & 27 de septiembre de 2026\\
+Fecha de entrega: & 28 de septiembre de 2026\\
 \end{tabular}
 \vspace{1.3cm}
 \end{titlepage}
 \pagenumbering{arabic}
 
-\section*{Necesidad y solución}
-Fauna Araucanía necesitaba presencia en Internet y servicios básicos alojados en el VPS asignado. El Grupo 3 organizó la solución bajo \texttt{zorro-darwin.lazos.cl}: un DNS propio, tres sitios independientes, administración de DNS, transferencia de archivos, correo con acceso web y un programa de chat. El VPS usa AlmaLinux 9.8; los servicios se mantienen bajo firewall y SELinux en modo \texttt{Enforcing}.
+\section{Contexto y objetivo}
+El taller nos pidió reunir en un VPS los servicios que normalmente sostienen varios equipos: nombres de dominio, sitios web, correo, transferencia de archivos y una aplicación cliente-servidor. Trabajamos con el servidor \texttt{200.13.5.39} y el dominio \texttt{zorro-darwin.lazos.cl} para el caso Fauna Araucanía. Nuestro objetivo fue que cada servicio pudiera utilizarse desde otro equipo y que las cuentas y archivos de los tres sitios permanecieran separados.
 
-\section*{Resultados comprobados}
-\begin{tabularx}{\linewidth}{@{}p{3cm}X@{}}\toprule
-Área & Resultado observado desde el VPS o un equipo externo \\\midrule
-DNS y web & El dominio raíz y los nombres de servicio resolvieron a 200.13.5.39. WordPress, Joomla y Grav mostraron contenido propio en web1, web2 y web3. \\
-Administración & PowerAdmin permitió ingresar y administrar la zona; los cambios de prueba fueron visibles en consultas DNS. \\
-Archivos & Cada uno de los tres usuarios FTP pudo subir y modificar su archivo; la versión nueva se descargó desde su sitio. No pudieron entrar en carpetas de otros usuarios; el acceso anónimo fue rechazado. \\
-Correo & CMS1 envió un mensaje desde RoundCube a CMS2; CMS2 lo abrió y respondió; CMS1 abrió la respuesta. \\
-Chat y protección & El cliente local intercambió mensajes en dos conexiones consecutivas. Nueve servicios estaban activos; MariaDB solo escuchaba localmente y SELinux seguía en Enforcing. \\
+El VPS ejecuta AlmaLinux 9.8. Instalamos PowerDNS con administración mediante PowerAdmin, Apache con tres CMS, vsftpd, Postfix, Dovecot, RoundCube y un chat en Python. La Figura~\ref{fig:esquema} resume cómo se conectan. Es un esquema explicativo; las pruebas están en el informe técnico y en el directorio de evidencias.
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[>=Latex, node distance=8mm, every node/.style={font=\small}]
+\node[draw,rounded corners,fill=blue!8,text width=3cm,align=center] (c) {Personas y clientes\\navegador, FTP, correo, chat};
+\node[draw,rounded corners,fill=green!8,right=12mm of c,text width=3.6cm,align=center] (v) {VPS 200.13.5.39\\DNS, tres sitios, correo, FTP y chat};
+\node[draw,rounded corners,fill=blue!8,right=12mm of v,text width=3cm,align=center] (d) {Datos locales\\MariaDB, archivos web y buzones};
+\draw[->] (c)--(v); \draw[->] (v)--(d);
+\end{tikzpicture}
+\caption{Esquema sencillo de la solución. El cortafuegos controla los puertos publicados; SELinux y los permisos del sistema delimitan el acceso interno.}\label{fig:esquema}
+\end{figure}
+
+\section{Servicios y direcciones}
+La tabla indica dónde se accede a cada componente. Los nombres web comparten IP; Apache decide qué sitio mostrar según el nombre solicitado. La base de datos atiende solo a procesos del propio VPS.
+
+\begin{table}[htbp]\centering\small
+\caption{Servicios publicados y uso de cada dirección.}\label{tab:servicios}
+\renewcommand{\arraystretch}{1.13}
+\begin{tabularx}{\linewidth}{@{}p{4.4cm}X@{}}\toprule
+Nombre o acceso & Servicio y uso principal \\\midrule
+\nolinkurl{zorro-darwin.lazos.cl} & PowerDNS, 53 UDP/TCP. Zona autoritativa con A de la raíz y MX para correo. \\
+\texttt{web1}, \texttt{web2}, \texttt{web3} & HTTP/80. WordPress, Joomla y Grav, respectivamente. \\
+\texttt{dnsadmin} & PowerAdmin en HTTP/80 para administrar registros DNS. \\
+\texttt{webmail} & RoundCube en HTTP/80 para enviar y leer correo. \\
+\texttt{mail} & SMTP/25 e IMAPS/993 para recepción y lectura de buzones. \\
+\texttt{200.13.5.39:2121} & FTP con modo pasivo 30000--30100. Carga de archivos de las tres cuentas CMS. \\
+\texttt{200.13.5.39:9000} & Chat TCP para intercambiar texto con el servidor Python. \\
 \bottomrule\end{tabularx}
+\end{table}
 
-\section*{Dificultades y decisiones}
-La revisión de la primera entrega detectó fallas que no aparecían en comprobaciones superficiales: FTP aceptaba usuarios pero rechazaba la escritura, y RoundCube permitía entrar pero no enviar. Se aplicó una regla SELinux acotada para la escritura FTP y se corrigió el destino SMTP de RoundCube. Se completó el contenido propio de Joomla y Grav, se añadió la dirección del dominio raíz y se retiraron dos artefactos temporales de prueba. Cada corrección se contrastó con una operación completa; el informe técnico contiene comandos, capturas explicadas y resultados.
+Todos los nombres abreviados de la tabla llevan el sufijo \texttt{.zorro-darwin.lazos.cl}. MariaDB escucha en \texttt{127.0.0.1:3306} y no se publica hacia Internet. SSH/22 queda disponible para administración.
 
-\section*{Estado y límites}
-La infraestructura funciona para las actividades comprobadas del taller. El webmail y el FTP públicos usan transporte sin cifrado, y el certificado de correo es autofirmado: antes de un uso real deben incorporarse HTTPS, un método seguro de transferencia y un certificado confiable. La cuenta adicional \texttt{admin@} mencionada en la planificación no fue demostrada. El video resumen solicitado por la pauta no se elaboró en esta revisión. El informe técnico es el respaldo detallado de esta síntesis; las credenciales no aparecen en ninguno de los dos documentos.
+\section{Resultados observados}
+Probamos el DNS desde un equipo externo por UDP y TCP. La raíz, los nombres de servicio y el destino del correo resolvieron a la IP asignada. El padre y la zona hija usan nombres NS diferentes, pero los dos conducen a \texttt{200.13.5.39}; las consultas funcionaron. En PowerAdmin creamos un TXT temporal, vimos el valor en una consulta DNS y lo borramos. La zona final conserva once registros. Esa prueba se hizo con una cuenta administrativa temporal que luego retiramos.
+
+En web1, web2 y web3 encontramos contenidos distintos. WordPress presenta un artículo sobre el zorro de Darwin; Joomla, uno sobre el bosque nativo que publicamos desde su administración; Grav sirve una guía escrita en Markdown. Las tres páginas respondieron por su propio nombre. Los dos primeros CMS usan bases de datos separadas y Grav guarda sus páginas en archivos.
+
+El FTP aceptó a las tres cuentas locales en el puerto 2121. Un cliente automatizado subió y reemplazó un archivo por cuenta; después comprobamos por HTTP que cada sitio mostraba la versión nueva. Las pruebas de acceso a carpetas ajenas fueron rechazadas, al igual que el usuario anónimo. En RoundCube, un navegador real manejado por automatización envió correo de CMS1 a CMS2; el destinatario lo abrió, respondió y CMS1 abrió la respuesta. El chat recibió mensajes de un cliente externo en dos sesiones seguidas, sin reiniciar su servicio.
+
+Al terminar, el cortafuegos mantenía abiertos los puertos necesarios, MariaDB seguía limitada al propio VPS y SELinux permanecía en modo \texttt{Enforcing}. La tabla de comprobaciones del informe técnico distingue la fecha de las pruebas funcionales de la repetición DNS del 28 de septiembre.
+
+\section{Dificultades y límites}
+Tuvimos que ir más allá de comprobar si un proceso decía estar activo. FTP dejaba iniciar sesión, pero rechazaba la escritura; revisamos permisos y política SELinux, aplicamos una regla acotada y repetimos la subida de las tres cuentas. RoundCube permitía entrar, pero buscaba un puerto SMTP donde Postfix no escuchaba; corregimos su destino y verificamos el mensaje de ida y vuelta. También completamos contenido propio en Joomla y Grav, agregamos el A del dominio raíz y ajustamos el servidor de chat para aceptar otra conexión.
+
+Estas pruebas demuestran el funcionamiento exigido en el entorno del taller. El acceso público al webmail es HTTP y la transferencia FTP no cifra su contenido. El certificado usado para correo es autofirmado. Para uso fuera del laboratorio recomendamos proteger esos transportes y usar un certificado confiable. No comprobamos el buzón adicional \texttt{admin@}, que figuraba en una planificación inicial pero no en el alcance mínimo confirmado. Tampoco medimos disponibilidad prolongada ni carga concurrente.
+
+\section{Conclusión y entrega}
+Pudimos relacionar nombres, sitios, archivos, correo y chat en un solo VPS y dejar evidencia de cada operación. La lección más útil fue probar el resultado que recibe el usuario: un inicio de sesión FTP no demuestra escritura, y abrir RoundCube no demuestra entrega de mensajes. El informe técnico conserva la configuración, las capturas y el análisis de las fallas; el video mudo presenta una selección de esas pruebas para añadir nuestras voces.
+
+Los archivos están en el \href{https://github.com/Luchosqi/taller-redes-grupo-3}{repositorio del Grupo 3}, dentro de la rama de entrega. Enlaces directos:
+\begin{itemize}\setlength\itemsep{0pt}
+\item \href{https://github.com/Luchosqi/taller-redes-grupo-3/blob/feature/auditoria-dns-poweradmin/informe/latex/informe-tecnico.pdf}{Informe técnico (PDF)} y \href{https://github.com/Luchosqi/taller-redes-grupo-3/blob/feature/auditoria-dns-poweradmin/informe/latex/informe-ejecutivo.pdf}{este informe ejecutivo (PDF)}.
+\item \href{https://github.com/Luchosqi/taller-redes-grupo-3/blob/feature/auditoria-dns-poweradmin/entrega/video/video-demostrativo-sin-voz.mp4}{Video MP4 sin voz} y \href{https://github.com/Luchosqi/taller-redes-grupo-3/blob/feature/auditoria-dns-poweradmin/entrega/video/guion-y-storyboard.md}{guion con tiempos y narradores}.
+\item \href{https://github.com/Luchosqi/taller-redes-grupo-3/tree/feature/auditoria-dns-poweradmin/entrega/chat-texto}{Código e instrucciones del chat} y \href{https://github.com/Luchosqi/taller-redes-grupo-3/tree/feature/auditoria-dns-poweradmin/evidencias}{capturas y transcripciones}.
+\end{itemize}
+Las credenciales y llaves permanecen fuera de la entrega.
 
 \end{document}
