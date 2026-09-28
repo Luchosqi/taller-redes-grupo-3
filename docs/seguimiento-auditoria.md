@@ -1,5 +1,21 @@
 # Seguimiento de auditoría del Grupo 3
 
+## Cierre de entrega — 28-09-2026 CLT
+
+La revisión documental terminó después del Lote 1. Se generaron y revisaron [el técnico](../informe/latex/informe-tecnico.pdf) (24 páginas) y [el ejecutivo](../informe/latex/informe-ejecutivo.pdf) (3 páginas), además del [MP4 mudo de 3:20](../entrega/video/video-demostrativo-sin-voz.mp4) y su [guion](../entrega/video/guion-y-storyboard.md). Ambos `.tex` se compilaron dos veces con Tectonic 0.17.0; los PDF modificados antes de `b5e81b5` se respaldaron antes de sustituirlos. El video se decodificó completo y se revisaron sus placas. No hubo intervención adicional en el VPS durante este cierre.
+
+| ID | Estado al cierre | Fundamento |
+|---|---|---|
+| A05 / S02 | Resuelto | Fuentes y PDF coherentes; dos compilaciones por informe, revisión visual y enlaces del ejecutivo comprobados. |
+| A06 / D01–D08 | Resuelto en operación y documentación | Figuras y texto del lote DNS/PowerAdmin incluidos en el técnico: delegación, NS/SOA/A/MX, UDP/TCP, BD local, TXT temporal y zona final de once registros. |
+| S04 | Resuelto como entregable mudo | MP4 Full HD de 3:20 y guion por narrador; requiere que el grupo incorpore sus grabaciones de voz. El montaje usa capturas auténticas, no una sesión en vivo del 28-09. |
+| S05 | Resuelto | `PROGRESO.md` y este seguimiento reflejan 24 y 3 páginas, rama y artefactos actuales. |
+| A01–A04, A08–A10 | Resuelto según pruebas funcionales previas | Las evidencias del 26–27-09 siguen disponibles. No se repitieron FTP, envío de correo ni dos sesiones de chat el 28-09. |
+| S01 | Límite documental | `gio.txt` no está disponible en el repositorio. Se usaron los criterios confirmados por el usuario y la matriz derivada; no se afirma haber vuelto a leer el archivo oficial en esta sesión. |
+| S03 / A07 | Límite conocido | HTTP, FTP y certificado de correo conservan los límites descritos; no se tocaron. `web3_db` no se retiró. |
+
+Las matrices y planes que siguen registran el estado **anterior a la producción de los entregables**. Sus acciones pendientes no describen el estado final de los archivos.
+
 Revisión inicial: 28-09-2026, desde el equipo local y por SSH de solo lectura al VPS `200.13.5.39`. Este documento contrasta la [auditoría del 26-09](auditoria-pendientes-2026-09-26.md) con las [evidencias posteriores](../evidencias/11-validacion-final/resumen.md), los informes actuales y consultas nuevas. El Lote 1, ejecutado después de esa revisión el mismo día, queda registrado por separado: se creó y eliminó un TXT temporal desde PowerAdmin, se purgó la caché de ese nombre y se retiró una cuenta administrativa temporal. No se modificaron archivos de configuración ni los informes.
 
 ## Alcance de la comprobación
@@ -12,7 +28,7 @@ La pauta confirma las actividades 1 a 12, tres usuarios locales `tredes3-cms1..3
 
 Consultas nuevas del 28-09: SSH y nueve unidades de servicio activas (`httpd`, `php-fpm`, `pdns`, `mariadb`, `vsftpd`, `postfix`, `dovecot`, `firewalld`, `chat-texto`), ninguna unidad fallida, SELinux `Enforcing`; DNS autoritativo y 1.1.1.1 devuelven `200.13.5.39` para la raíz, A de los seis nombres de servicio y MX `10 mail`; `pdnsutil zone check` informa 11 registros y cero errores/avisos; `_revision` no responde TXT; `web1`, `web2` y `web3` responden HTTP 200 con el contenido esperado; `webmail` responde 200 y `dnsadmin` redirige con 302 al acceso. MariaDB escucha solo en `127.0.0.1:3306`; el firewall publica los puertos documentados y 443 no escucha. Estas son consultas de estado y contenido, no nuevos envíos de correo, transferencias FTP ni sesiones completas de chat.
 
-## Matriz por hallazgo
+## Matriz por hallazgo (corte previo a la entrega)
 
 | ID | Actividad | Hallazgo contrastado | Estado | Prioridad | Acción | Evidencia disponible | Criterio de cierre |
 |---|---|---|---|---|---|---|---|
@@ -29,7 +45,7 @@ Consultas nuevas del 28-09: SSH y nueve unidades de servicio activas (`httpd`, `
 | A11 | 3/4 y 6 Limpieza | El TXT `_revision` y el TXT de este lote no responden; el endpoint `audit-upload-check.php` no existe en la ruta web1. La zona volvió a 11 registros válidos y la cuenta administrativa temporal fue eliminada. | resuelto | Baja | Mantener pruebas temporales con nombre, fecha y limpieza registrada. | [Bitácora](bitacora-vps.md), [cierre del Lote 1](../evidencias/12-auditoria-lote1-dns-poweradmin/terminal-cierre.txt), `test -e` anterior. | Artefactos temporales ausentes y zona final válida. |
 | A12 | 8 Correo / alcance | La pauta recibida exige cuentas del dominio con envío y recepción, pero no un buzón `admin@`. La falta de demostración de esa cuenta no es incumplimiento. La diferencia entre el nombre delegado por el padre y el NS del hijo no demuestra por sí sola fallo DNS. | resuelto | Baja | Mantener el alcance real en el informe; comprobar delegación en el lote DNS sin crear un buzón innecesario. | Pauta recibida el 28-09; [técnico](../informe/latex/informe-tecnico.tex), consultas NS de hoy. | Correo entre cuentas configuradas probado y resolución de los nombres de correo desde fuera. |
 
-## Hallazgos añadidos en esta iteración
+## Hallazgos añadidos en la auditoría previa
 
 | ID | Actividad | Hallazgo | Estado | Prioridad | Acción | Evidencia disponible | Criterio de cierre |
 |---|---|---|---|---|---|---|---|
@@ -56,7 +72,7 @@ Esta tabla separa la operación de PowerDNS/PowerAdmin, los archivos de prueba o
 
 **Reservados para lotes posteriores:** A01 y A08 (FTP y jaulas); A02 y A03 (correo); A04 y A07 en lo relativo a los CMS; A05 y S02 (compilación/revisión de informes); A09 (chat); A10 (SELinux durante flujos); S03 (transporte opcional); S04 (video) y S05 (metadatos de entrega). A11 solo se reconsiderará si aparecen artefactos de prueba nuevos; A12 ya quedó aclarado por la pauta, pero su observación sobre delegación se comprueba en D01. No se ejecutan pruebas ni cambios de esas otras actividades durante este lote.
 
-## Lotes y dependencias
+## Lotes y dependencias planificados antes del cierre
 
 1. **Lote 1, DNS y PowerAdmin: pruebas terminadas.** Se comprobó desde el VPS y el cliente externo la delegación, NS/SOA, A/MX, recursión, UDP/TCP 53, servicio, firewall, base y permisos. Se respaldó `pdns_redes3` antes de crear y eliminar el TXT por PowerAdmin; se purgó solo la caché de ese nombre y se repitió la matriz externa después. D01–D08 tienen archivos de prueba, pero siguen pendientes las explicaciones y figuras del informe. No se alteraron registros operativos para igualar los nombres NS del padre y del hijo.
 2. **Lote 2, servicios de flujo.** Repetir FTP de los tres usuarios, RoundCube ida y vuelta en navegador, y dos sesiones de chat desde el equipo local. Identificar con claridad la prueba FTP automatizada frente a las interacciones de navegador. Correlacionar AVC solo si hay fallos; respaldar configuración y bases antes de cualquier corrección. Cerrar A01/A02/A03/A09/A10 con resultados nuevos.
@@ -65,7 +81,7 @@ Esta tabla separa la operación de PowerDNS/PowerAdmin, los archivos de prueba o
 
 Dependencia principal: **DNS y delegación → nombres estables → eventual HTTPS → pruebas finales → capturas y PDF/video**. HTTPS es opcional según la pauta recibida; el video y las evidencias en el técnico son obligatorios. FTP, correo y chat pueden probarse en paralelo con las consultas DNS, pero sus capturas de entrega deben usar los nombres y transportes definitivos.
 
-## Fuentes de informe y compilación
+## Fuentes de informe y compilación (registro previo)
 
 - [Técnico](../informe/latex/informe-tecnico.tex): secciones de arquitectura y plan de nombres (líneas 64-112), DNS (121-134), correo (199-219), firewall/SELinux (220-242), integración (255-271), límites (272-282), procedimiento de comprobación (283-367), conclusiones y referencias (368-378). Editar solo donde los próximos lotes cambien hechos o evidencias.
 - [Ejecutivo](../informe/latex/informe-ejecutivo.tex): `Resultados comprobados` (37-46) y `Estado y límites` (50-52), además de la fecha de portada si se emite una versión nueva.

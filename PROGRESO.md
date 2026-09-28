@@ -1,6 +1,18 @@
 # Estado de avance — Grupo 3
 
-Actualizado: 2026-09-27 CEST. El detalle histórico de implementación siguiente conserva el orden de intervención; el dictamen vigente está arriba. Este documento permite que otro integrante o agente retome el trabajo sin repetir la inspección ni confundir el estado inicial con servicios implementados.
+Actualizado: 2026-09-28 CLT. El detalle de implementación posterior conserva el orden histórico; este bloque describe los archivos de entrega actuales.
+
+## Entrega documental y audiovisual — 28-09-2026
+
+Las doce actividades tienen procedimiento, resultado y evidencia en [el informe técnico](informe/latex/informe-tecnico.pdf) (24 páginas). [El ejecutivo](informe/latex/informe-ejecutivo.pdf) (3 páginas) resume el alcance para una persona no especialista. Ambos PDF se compilaron dos veces desde sus fuentes LaTeX con Tectonic 0.17.0 y se revisaron visualmente; las copias previas, que ya tenían cambios sin commit antes de `b5e81b5`, se respaldaron antes de reemplazarlas. No se modificó el VPS en este lote.
+
+- [Video demostrativo sin voz](entrega/video/video-demostrativo-sin-voz.mp4): 3:20, H.264, 1920 × 1080, 25 fps. Decodificación completa con FFmpeg sin errores.
+- [Guion y storyboard](entrega/video/guion-y-storyboard.md): escenas, tiempos y narración distribuida entre los tres integrantes. [Proyecto reproducible](entrega/video/crear_video.py).
+- [Evidencia DNS/PowerAdmin del 28-09](evidencias/12-auditoria-lote1-dns-poweradmin/README.md) incorporada al técnico. La zona final tiene 11 registros; el TXT y la cuenta temporal fueron retirados. Los NS del padre y del hijo tienen nombres distintos, pero conducen a la misma IP y la resolución funcionó.
+- Las pruebas funcionales de FTP, correo, CMS y chat que aparecen en el video e informes proceden de las capturas y transcripciones del 26–27-09; no se repitieron como operación en vivo el 28-09. El video es un montaje de esa evidencia, con placas explicativas claramente diferenciadas.
+- Límites declarados: HTTP y FTP públicos sin cifrado, certificado de correo autofirmado, buzón adicional `admin@` no demostrado y `gio.txt` no disponible en este repositorio. El video se entrega sin voz para que el grupo incorpore la narración.
+
+Rama de entrega: `feature/auditoria-dns-poweradmin`, basada en `b5e81b5`; se conserva el historial anterior. La matriz de requisitos se tomó de `REVISION_PAUTA_CAMPUS.md` y de los criterios confirmados en la conversación del 28-09, no de un archivo `gio.txt` local.
 
 ## Estado verificado tras correcciones — 27-09-2026 CEST
 
@@ -13,7 +25,7 @@ Actualizado: 2026-09-27 CEST. El detalle histórico de implementación siguiente
 - Historial de fallas detectadas antes de estas correcciones: [auditoría](docs/auditoria-pendientes-2026-09-26.md).
 - Pendiente fuera de la validación técnica: video resumen exigido por la pauta. La cuenta adicional `admin@` del plan inicial no fue demostrada. HTTP/FTP públicos y certificado de correo autofirmado son límites documentados.
 
-## Estado actual
+## Registro histórico previo a esta entrega
 
 - Repositorio: `git@github.com:Luchosqi/taller-redes-grupo-3.git`, rama `main`.
 - Último avance previamente publicado: `cc1e294` (`docs: registrar línea base real del VPS`). Este archivo está pendiente de commit y publicación.
