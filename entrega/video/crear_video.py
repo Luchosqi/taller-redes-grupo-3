@@ -19,21 +19,30 @@ BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 SIZE = (1920, 1080)
 
 # Segundos y evidencia original. None significa placa explicativa.
+# Las escenas marcadas con @ usan recursos fuera de evidencias/, dentro del repo.
 SCENES = [
     (12, "Taller de Redes · Grupo 3", "zorro-darwin.lazos.cl  |  VPS 200.13.5.39", None),
-    (15, "Arquitectura del sistema", "Un VPS, servicios separados por nombre, cuenta y puerto", None),
-    (17, "DNS autoritativo", "A y MX comprobados desde el cliente; UDP y TCP 53", "12-auditoria-lote1-dns-poweradmin/terminal-cliente-resumen.png"),
-    (8, "PowerAdmin · edición", "TXT de prueba creado y consultado por DNS", "12-auditoria-lote1-dns-poweradmin/poweradmin-txt-creado.png"),
-    (8, "PowerAdmin · cierre", "TXT retirado; la zona final conserva once registros", "12-auditoria-lote1-dns-poweradmin/poweradmin-zona-final-completa.png"),
-    (13, "WordPress · web1", "Artículo público sobre el zorro de Darwin", "10-revision/web1-final.png"),
-    (13, "Joomla · web2", "Artículo publicado desde el administrador", "10-revision/joomla-contenido-publico.png"),
-    (13, "Grav · web3", "Página propia guardada en Markdown", "10-revision/web3-final.png"),
-    (17, "FTP enjaulado · TCP 2121", "Tres usuarios: subida, reemplazo y lectura HTTP; anónimo rechazado", "10-revision/solucion-ftp.png"),
-    (17, "Correo · CMS1 a CMS2", "Mensaje enviado por RoundCube y abierto por el destinatario", "10-revision/correo-02-recibido.png"),
-    (16, "Correo · respuesta a CMS1", "Respuesta abierta en el buzón original", "10-revision/correo-04-respuesta-recibida.png"),
-    (16, "Firewall y SELinux", "Puertos comprobados; MariaDB local; Enforcing activo", "10-revision/solucion-seguridad.png"),
-    (16, "Chat TCP · puerto 9000", "Dos sesiones consecutivas desde el cliente externo", "10-revision/solucion-chat.png"),
-    (19, "Resultados y correcciones", "DNS, 3 CMS, FTP, correo y chat comprobados  |  Informes en informe/latex", None),
+    (20, "Arquitectura del sistema", "PowerDNS, web, correo, FTP, chat y base local en un VPS", "@informe/latex/recursos/diagrama-arquitectura-v2.png"),
+    (24, "DNS autoritativo", "Resolución externa por UDP/TCP; A raíz, NS, SOA y MX", "12-auditoria-lote1-dns-poweradmin/terminal-cliente-resumen-recorte.png"),
+    (18, "PowerAdmin · edición temporal", "Creamos un TXT, lo consultamos y verificamos el cambio", "12-auditoria-lote1-dns-poweradmin/poweradmin-txt-creado.png"),
+    (10, "PowerAdmin · zona final", "Retiramos el TXT; la zona operativa quedó con once registros", "12-auditoria-lote1-dns-poweradmin/poweradmin-zona-final-completa.png"),
+    (18, "WordPress · web1", "Artículo propio sobre el zorro de Darwin; base web1_db", "10-revision/web1-final.png"),
+    (18, "Joomla · web2", "Artículo publicado desde Joomla y mostrado en el sitio público", "10-revision/joomla-contenido-publico.png"),
+    (18, "Grav · web3", "Página de hábitats guardada como Markdown, sin base SQL", "10-revision/web3-final.png"),
+    (22, "FTP enjaulado · TCP 2121", "Tres cuentas suben y reemplazan archivos; comprobamos su lectura por HTTP", "10-revision/solucion-ftp-recorte.png"),
+    (22, "Correo · CMS1 a CMS2", "RoundCube envía; Postfix entrega a Maildir; CMS2 abre el mensaje", "10-revision/correo-02-recibido.png"),
+    (20, "Correo · respuesta a CMS1", "CMS2 responde y CMS1 recibe; la prueba usó automatización de navegador", "10-revision/correo-04-respuesta-recibida.png"),
+    (22, "Firewall y SELinux", "Puertos de servicio; MariaDB solo local; SELinux Enforcing", "10-revision/solucion-seguridad-recorte.png"),
+    (22, "Chat TCP · puerto 9000", "Dos intercambios seguidos sin reiniciar la unidad del servidor", "10-revision/solucion-chat-recorte.png"),
+    (20, "Cierre de resultados", "Evidencias funcionales registradas entre el 26 y el 29 de septiembre", None),
+    (8, "Anexo · capturas de consola", "Recortes de capturas originales · verificaciones del cliente y el VPS", None),
+    (12, "Consola · DNS y zona", "Salida remota SSH; recorte sin ruta privada · 28-09-2026", "12-auditoria-lote1-dns-poweradmin/terminal-vps-resumen-recorte.png"),
+    (12, "Consola · DNS externo", "NS, SOA, A y MX consultados desde el cliente · 28-09-2026", "12-auditoria-lote1-dns-poweradmin/terminal-cliente-resumen-recorte.png"),
+    (12, "Consola · VirtualHosts y permisos", "Propietarios y modos de los tres public_html · 27-09-2026", "10-revision/solucion-web-permisos-recorte.png"),
+    (12, "Consola · pruebas FTP", "Transferencias y comparación HTTP · 27-09-2026", "10-revision/solucion-ftp-recorte.png"),
+    (12, "Consola · puertos firewalld", "Servicios y puertos permitidos · 27-09-2026", "10-revision/solucion-seguridad-recorte.png"),
+    (12, "Consola · chat TCP", "Dos sesiones registradas desde el cliente · 27-09-2026", "10-revision/solucion-chat-recorte.png"),
+    (10, "Fin", "Grupo 3 · informe técnico, ejecutivo y video demostrativo", None),
 ]
 
 
@@ -74,17 +83,16 @@ def slide(index: int, total: int, title: str, subtitle: str, source: str | None)
     d.text((69, 1010), subtitle, font=fit_text(d, subtitle, 1780, 28), fill="#d6e8ef")
     d.text((1820, 1047), f"{index + 1:02d}/{total:02d}", font=ImageFont.truetype(FONT, 20), fill="#e6f0f3")
     if source:
-        src = Image.open(E / source).convert("RGB")
+        src_path = ROOT / source[1:] if source.startswith("@") else E / source
+        src = Image.open(src_path).convert("RGB")
         factor = min(1770 / src.width, 820 / src.height)
         src = src.resize((round(src.width * factor), round(src.height * factor)), Image.Resampling.LANCZOS)
         x = (1920 - src.width) // 2
         y = 160 + (820 - src.height) // 2
         image.paste(src, (x, y))
         d.rectangle((x - 2, y - 2, x + src.width + 2, y + src.height + 2), outline="#8bc7d4", width=3)
-        d.text((70, 965), f"Captura original: evidencias/{source}", font=ImageFont.truetype(FONT, 20), fill="#a8c2cf")
-    elif index == 1:
-        architecture(d)
-        d.text((68, 965), "Diagrama explicativo · no representa una captura de funcionamiento", font=ImageFont.truetype(FONT, 20), fill="#a8c2cf")
+        label = source[1:] if source.startswith("@") else f"Captura derivada con recorte seguro: evidencias/{source}" if "-recorte" in source else f"Captura original: evidencias/{source}"
+        d.text((70, 965), label, font=ImageFont.truetype(FONT, 20), fill="#a8c2cf")
     else:
         summary = "Grupo 3  |  Luis Jaramillo · Giovanny Toledo · Maximiliano Rivas" if index == 0 else "Pruebas y transcripciones: evidencias/  |  Informes: informe/latex/"
         d.text((130, 500), summary, font=fit_text(d, summary, 1660, 42, True), fill="#d9eaf0")

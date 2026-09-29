@@ -32,3 +32,5 @@ id_ed25519*
 .DS_Store
 Thumbs.db
 .vscode/
+__pycache__/
+*.py[cod]

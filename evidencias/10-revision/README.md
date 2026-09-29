@@ -1,8 +1,17 @@
 # Evidencias originales: auditoría y correcciones
 
-La auditoría inicial y sus fallos están documentados en `../../docs/auditoria-pendientes-2026-09-26.md`. El estado posterior y la tabla integrada están en `../11-validacion-final/resumen.md`. Los PDF finales citan las figuras seleccionadas y explican qué prueba acredita cada una. Las capturas de terminal se tomaron de una ventana real durante la ejecución; cada PNG final `solucion-*.png` tiene una transcripción `.txt` de comandos y resultados.
+Esta carpeta conserva capturas del diagnóstico inicial, las correcciones y las pruebas posteriores. El estado final por actividad está resumido en `../11-validacion-final/resumen.md` y en la tabla integrada del informe técnico. Los PDF citan las figuras seleccionadas y explican qué acredita cada prueba. Las capturas de terminal tienen transcripciones `.txt` con comandos y resultados.
 
 ## Capturas finales incorporadas al informe
+
+### Recortes seguros derivados para informe y video
+
+Los archivos originales `solucion-web.png`, `solucion-ftp.png`, `solucion-seguridad.png` y `solucion-chat.png` permanecen intactos. Para evitar mostrar trazas del capturador o rutas temporales en las piezas finales, generamos recortes que conservan los resultados útiles:
+
+- `solucion-web-permisos-recorte.png`: propietario y modo de los tres `public_html`.
+- `solucion-ftp-recorte.png`: transferencias y comparación de contenido HTTP para las tres cuentas.
+- `solucion-seguridad-recorte.png`: lista de servicios y puertos de firewalld.
+- `solucion-chat-recorte.png`: resultado de las dos sesiones consecutivas.
 
 | Archivo | Evidencia y alcance |
 |---|---|

@@ -35,7 +35,8 @@ La captura inicial de la tabla era idéntica a la final a nivel de píxeles: mue
 - `terminal-vps-dns-base.txt`: `pdns`, escucha, firewall, zona, MariaDB, registros, backend y permisos sin contraseña.
 - `terminal-poweradmin-txt.txt`: TXT visible, borrado, respuestas de `dig` y purgas de caché.
 - `terminal-cierre.txt`: zona y registros finales, cuenta temporal ausente y servicio activo.
-- `terminal-cliente-resumen.png`, `terminal-vps-resumen.png`: capturas legibles de terminal durante consultas nuevas.
+- `terminal-cliente-resumen.png`, `terminal-vps-resumen.png`: capturas completas de terminal durante consultas nuevas.
+- `terminal-cliente-resumen-recorte.png`, `terminal-vps-resumen-recorte.png`: recortes usados en el informe y el video. El recorte del VPS omite la invocación local y conserva la salida remota; los originales se mantienen intactos.
 - `poweradmin-txt-formulario.png`, `poweradmin-txt-creado.png`, `poweradmin-zona-final-completa.png`: interfaz real con URL visible y 12 y 11 registros en las etapas verificables.
 
-**Pendiente para la entrega académica:** incorporar estas pruebas al informe técnico con explicación, numeración y referencias a las figuras. No se editaron ni recompilaron los informes en este lote. Tampoco se comprobó la contraseña de la cuenta `admin` preexistente; la operación de PowerAdmin se ensayó con la cuenta temporal descrita arriba. La captura del clic de confirmación del borrado se descartó por mostrar un fotograma anterior; el borrado está documentado por la tabla final, SQL y `dig`.
+El informe técnico y el video usan los recortes indicados; las capturas completas y transcripciones originales permanecen disponibles para auditoría. No comprobamos la contraseña de la cuenta `admin` preexistente; la operación de PowerAdmin se ensayó con la cuenta temporal descrita arriba. La captura del clic de confirmación del borrado se descartó por mostrar un fotograma anterior; el borrado está documentado por la tabla final, MariaDB y `dig`.

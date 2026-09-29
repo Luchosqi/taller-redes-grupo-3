@@ -1,0 +1,29 @@
+CONSULTA SSH NO PRIVILEGIADA | Grupo 3 | VPS 200.13.5.39
+Fecha del VPS: 2026-09-29T00:19:46+02:00
+Origen: equipo local, conexión SSH con llave Ed25519; sin contraseña en la salida.
+
+$ hostname
+localhost.localdomain
+
+$ getenforce
+Enforcing
+
+$ systemctl is-active httpd php-fpm pdns mariadb vsftpd postfix dovecot firewalld chat-texto
+active
+active
+active
+active
+active
+active
+active
+active
+active
+
+$ for h in web1 web2 web3 webmail dnsadmin; do curl -sS -o /dev/null -w "$h %{http_code}\n" -H "Host: $h.zorro-darwin.lazos.cl" http://127.0.0.1/; done
+web1 200
+web2 200
+web3 200
+webmail 200
+dnsadmin 302
+
+Límite: esta sesión no tenía autorización sudo no interactiva. Las consultas de firewall devolvieron “Not Authorized”; pdnsutil no llegó a ejecutarse porque sudo pidió contraseña. No inferimos el estado actual de esos parámetros a partir de esta consulta.

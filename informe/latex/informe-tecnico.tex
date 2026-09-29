@@ -8,7 +8,7 @@
 \geometry{margin=2.0cm}
 \graphicspath{{../../evidencias/}}
 \hypersetup{colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black}
-\setlength{\parskip}{0.28em}
+\setlength{\parskip}{0.4em}
 \emergencystretch=3em
 \sloppy
 \setlength{\parindent}{0pt}
@@ -40,67 +40,97 @@ Fecha de entrega: & 28 de septiembre de 2026\\
 \pagenumbering{roman}
 \tableofcontents
 \clearpage
+\listoffigures
+\clearpage
+\listoftables
+\clearpage
 \pagenumbering{arabic}
 
+%=====================================================================
 \section{Introducción y objetivos}
-Fauna Araucanía necesitaba operar sitios web, DNS, correo, transferencia de archivos y una aplicación cliente--servidor sobre el VPS del taller. Este informe registra la configuración realmente aplicada, las decisiones técnicas, los errores encontrados y las pruebas realizadas desde el VPS y un equipo externo. La pauta del taller se usa como criterio de cumplimiento; las capturas seleccionadas muestran resultados concretos y se interpretan en el texto.
+Fauna Araucanía es una empresa que quiere tener presencia en Internet, pero hoy solo cuenta con un servidor VPS y un dominio, sin DNS propio ni ningún servicio de red funcionando. Nuestro trabajo, como equipo de asesores, fue convertir ese servidor vacío en una infraestructura completa: nombres de dominio, tres sitios web, correo electrónico, transferencia de archivos y una aplicación cliente--servidor.
 
-El objetivo general fue desplegar los servicios integrados en \texttt{200.13.5.39}, bajo \ruta{zorro-darwin.lazos.cl}, y comprobar que el acceso y la comunicación funcionan. Los objetivos específicos fueron: crear tres cuentas aisladas; administrar la zona en PowerDNS/PowerAdmin; publicar WordPress, Joomla y Grav; comprobar FTP de cada usuario; enviar y recibir correo por RoundCube; mantener firewalld y SELinux activos; y ejecutar desde un cliente externo el programa de sockets.
+Trabajamos sobre un VPS con AlmaLinux, IP \texttt{200.13.5.39} y el dominio \texttt{zorro-darwin.lazos.cl}. Este informe cuenta qué instalamos, cómo lo configuramos, por qué tomamos cada decisión y cómo comprobamos que funciona. Cuando algo falló, lo explicamos también, porque de esos errores aprendimos más que de las instalaciones que salieron bien.
 
-\subsection{Criterio de comprobación y alcance de la evidencia}
-La validación separó tres niveles. Primero se inspeccionó la \emph{configuración declarada}: archivos de servicio, permisos, registros DNS y reglas de firewall. Luego se comprobó el \emph{estado operativo}: unidades activas, puertos en escucha y sintaxis aceptada por los programas. Finalmente se ejecutaron \emph{pruebas de extremo a extremo} desde el equipo del grupo: consultas DNS, solicitudes HTTP, transferencia FTP, correo entre dos buzones y conversaciones TCP. Una unidad activa demuestra que el proceso existe, pero no que el cliente alcance el servicio ni que complete una operación; por eso el último nivel determina el resultado indicado en la tabla final.
+\subsection{Objetivo general}
+Implementar, asegurar, documentar y validar una infraestructura integrada de servicios de red en un VPS Linux, que permita a Fauna Araucanía resolver nombres DNS, alojar tres sitios web, usar correo electrónico, transferir archivos y ejecutar una aplicación de sockets.
 
-Las consultas locales al VPS se usaron para aislar fallas de aplicación de fallas de publicación. Por ejemplo, \texttt{curl --resolve} permite enviar el encabezado HTTP \texttt{Host} al VirtualHost correcto aun antes de que la delegación pública funcione. En cambio, \texttt{dig @200.13.5.39} desde el equipo externo verifica el servidor autoritativo y \texttt{dig @1.1.1.1} añade una comprobación mediante un resolvedor público. Para FTP y correo se exigió observar el contenido recibido, además de la aceptación de la conexión. Las transcripciones completas se conservan en \evid{10-revision/}; las figuras de terminal del informe muestran solo las líneas de comando y sus salidas. Las fechas de captura corresponden a la hora local de Chile, mientras el VPS tenía configurada la zona Europe/Madrid.
+\subsection{Objetivos específicos}
+\begin{enumerate}\setlength\itemsep{0pt}
+\item Reconocer y documentar el estado inicial del VPS antes de instalar nada.
+\item Crear tres cuentas locales, una por sitio, con permisos separados y sin recurrir a 777.
+\item Montar un DNS autoritativo con PowerDNS y administrarlo con PowerAdmin.
+\item Publicar tres sitios en Apache, cada uno con un CMS distinto (WordPress, Joomla y Grav).
+\item Configurar vsftpd con puerto alternativo, sin acceso anónimo y con cada usuario encerrado en su directorio.
+\item Implementar correo con Postfix, Dovecot y RoundCube, y comprobar el envío y la recepción.
+\item Abrir en el firewall solo los puertos necesarios y mantener SELinux en modo \texttt{Enforcing}.
+\item Poner en marcha el servidor de sockets y probarlo desde un equipo externo.
+\item Validar todo en conjunto y documentar los problemas que encontramos.
+\end{enumerate}
 
-\begin{center}\small
-\begin{tabular}{@{}p{2.8cm}p{4.2cm}p{5.8cm}@{}}\toprule
-Nivel & Herramientas representativas & Pregunta que permite responder \\\midrule
-Configuración & \texttt{stat}, \texttt{getsebool}, \texttt{firewall-cmd}, \texttt{httpd -S} & ¿Coinciden propietarios, políticas, puertos y rutas con el diseño? \\
-Estado & \texttt{systemctl is-active}, \texttt{ss}, \texttt{apachectl configtest} & ¿Está cargado el servicio y acepta la configuración? \\
-Función & \texttt{dig}, \texttt{curl}, cliente FTP, RoundCube, cliente Python & ¿Obtiene el usuario el resultado solicitado desde otro equipo? \\
+\subsection{Cómo leer este informe}
+Para cada actividad intentamos responder siempre las mismas preguntas: \emph{qué hicimos}, \emph{cómo lo configuramos}, \emph{por qué lo decidimos así}, \emph{cómo lo comprobamos} y \emph{qué resultado obtuvimos}. No incluimos una captura por cada comando; agrupamos los pasos relacionados y mostramos capturas representativas del resultado, cada una con su explicación.
+
+Una idea guía atraviesa todo el trabajo: que un servicio aparezca como ``activo'' no prueba que funcione. Por eso, además de revisar su estado, lo probamos como lo haría un usuario real (desde otro equipo, enviando un correo, subiendo un archivo). La Tabla~\ref{tab:niveles} resume esos tres niveles de comprobación.
+
+\begin{table}[htbp]\centering\small
+\caption{Niveles de comprobación que aplicamos a cada servicio.}\label{tab:niveles}
+\begin{tabular}{@{}p{2.4cm}p{4.6cm}p{5.8cm}@{}}\toprule
+Nivel & Herramientas & Qué nos permite saber \\\midrule
+Configuración & \texttt{stat}, \texttt{getsebool}, \texttt{firewall-cmd}, \texttt{httpd -S} & Si propietarios, políticas, puertos y rutas están como los diseñamos. \\
+Estado & \texttt{systemctl is-active}, \texttt{ss}, \texttt{apachectl configtest} & Si el servicio está corriendo y su configuración es válida. \\
+Función & \texttt{dig}, \texttt{curl}, cliente FTP, RoundCube, cliente Python & Si un usuario, desde otro equipo, obtiene el resultado esperado. \\
 \bottomrule\end{tabular}
-\end{center}
+\end{table}
 
+\subsection{Alcance del trabajo}
+El alcance de este informe son los servicios pedidos por el taller: DNS con PowerDNS y PowerAdmin, tres sitios con tres CMS, FTP con jaulas, correo con Postfix, Dovecot y RoundCube, firewall, SELinux y la aplicación de sockets. Para el correo usamos IMAP e IMAPS, y los sitios y el webmail se publican por HTTP, que es lo que necesitábamos para demostrar el funcionamiento en el entorno del taller. Más adelante explicamos qué habría que cambiar para un uso real.
+
+En la consulta final por SSH al VPS (archivo \evid{11-validacion-final/consulta-ssh-20260929.txt}) las nueve unidades revisadas estaban activas, SELinux informó \texttt{Enforcing}, los sitios y el webmail respondieron HTTP 200 y PowerAdmin respondió HTTP 302 (la redirección a su pantalla de acceso). En esa sesión no pudimos usar \texttt{sudo}, así que no repetimos las consultas que requieren privilegios (zona y firewall); esas se hicieron en sesiones anteriores.
+
+%=====================================================================
 \section{Infraestructura, arquitectura y plan de nombres}
-\subsection{VPS y línea base -- actividad 1}
-La inspección inicial del 26 de septiembre encontró AlmaLinux 9.8, interfaz \texttt{ens18}, 3.6 GiB de RAM, 3.2 GiB de swap y raíz de 28 GiB. El sistema anunciaba \texttt{localhost.localdomain} y zona horaria \texttt{Europe/Madrid}; su IP pública era \texttt{200.13.5.39}. SELinux ya estaba en \texttt{Enforcing}; firewalld permitía ssh, http, cockpit y dhcpv6-client. Apache servía la página de prueba; no había CMS ni los demás servicios del taller instalados. Se verificó el acceso SSH antes de intervenir. Al cierre se comprobó la salida a Internet con una respuesta HTTP/2 200 desde el VPS; esa medición final aparece en la Figura~\ref{fig:entorno} y no se presenta como medición inicial. La Figura~\ref{fig:base} identifica la página previa, de modo que no se confunda con un sitio terminado.
+\subsection{El VPS y su estado inicial -- actividad 1}
+\paragraph{Qué hicimos.} Antes de instalar cualquier cosa, revisamos cómo venía el servidor, para poder comparar después. El 26 de septiembre consultamos la distribución, los recursos, la red, SELinux, el firewall y los servicios que ya corrían.
 
-La línea base permitió fijar un punto de comparación. La respuesta HTTP inicial solo demostraba que Apache aceptaba peticiones en 80/TCP; todavía no identificaba los nombres del taller ni mostraba contenido de un CMS. Se registraron además las unidades y puertos existentes para distinguir servicios preinstalados de los agregados por el grupo. La comprobación final de \texttt{ens18} y \texttt{getenforce} acredita que se mantuvo la IP asignada y el modo obligatorio de SELinux. El \texttt{HTTP/2 200} de la prueba saliente confirma conectividad desde el servidor hacia un sitio externo en ese momento, pero no sustituye las pruebas entrantes de DNS, web o correo.
+\paragraph{Qué encontramos.} El VPS usa AlmaLinux 9.8, con la interfaz \texttt{ens18}, IP \texttt{200.13.5.39}, 3.6 GiB de RAM, 3.2 GiB de swap y 28 GiB de disco en la raíz. El nombre de host es \texttt{localhost.localdomain} y la zona horaria \texttt{Europe/Madrid}. SELinux ya venía en \texttt{Enforcing}; firewalld permitía SSH, HTTP, Cockpit y DHCPv6, y Apache mostraba su página de prueba, sin ningún sitio nuestro.
+
+\paragraph{Decisión.} No cambiamos el hostname: no era necesario para que los VirtualHosts, el DNS ni el correo funcionaran, y evitamos así tocar algo que podía afectar otros servicios.
+
+\paragraph{Evidencia.} La Figura~\ref{fig:base} muestra la página de prueba de Apache, que confirma que el servicio web existía pero aún no alojaba nada nuestro. La Figura~\ref{fig:entorno} muestra, desde el propio VPS, la versión de AlmaLinux, la interfaz de red con su IP, SELinux en \texttt{Enforcing} y una solicitud HTTP saliente que respondió \texttt{HTTP/2 200}, lo que confirma que el servidor tiene salida a Internet.
 \begin{figure}[H]\centering
 \includegraphics[width=.76\linewidth,height=.43\textheight,keepaspectratio]{01-preparacion-vps/pagina-prueba-almalinux.png}
-\caption{Página de prueba de AlmaLinux observada antes del despliegue. Acredita respuesta HTTP inicial, pero aún no un sitio de Fauna Araucanía. Las consultas de versión, interfaz, firewall y SELinux están en \evid{01-preparacion-vps/}.}\label{fig:base}
+\caption[Página inicial de AlmaLinux]{Página de prueba de AlmaLinux antes del despliegue. Sirve como referencia del estado inicial: el servicio HTTP existía, pero todavía no había un sitio del taller.}\label{fig:base}
 \end{figure}
 \begin{figure}[H]\centering
 \includegraphics[width=.95\linewidth,height=.25\textheight,keepaspectratio,trim=15 890 20 90,clip]{10-revision/solucion-entorno.png}
-\caption{Revisión final del VPS desde el equipo local: AlmaLinux 9.8, interfaz ens18 con 200.13.5.39/26, SELinux Enforcing y respuesta HTTP/2 200 a una solicitud saliente. Esta evidencia es posterior al despliegue.}\label{fig:entorno}
+\caption[Entorno del VPS y salida a Internet]{AlmaLinux 9.8, interfaz \texttt{ens18} con 200.13.5.39/26, SELinux en \texttt{Enforcing} y una respuesta \texttt{HTTP/2 200} a una solicitud saliente. Capturada después del despliegue.}\label{fig:entorno}
 \end{figure}
 
-\subsection{Esquema de solución}
-Todos los servicios residen en el mismo VPS. PowerDNS y los CMS relacionales usan MariaDB solo por loopback. Apache enruta los nombres HTTP; Postfix entrega al Maildir de las cuentas locales y Dovecot lo expone a RoundCube. vsftpd trabaja con las mismas cuentas dentro de sus HOME. El servicio de sockets escucha en TCP/9000. La Figura~\ref{fig:arquitectura} representa esas relaciones; los puertos abiertos se justifican en la sección de seguridad. Es un diagrama explicativo, mientras las capturas posteriores muestran pruebas reales.
+\subsection{Diseño de la solución}
+Decidimos concentrar todos los servicios en el mismo VPS y mantener sus datos ordenados y separados. La Figura~\ref{fig:arquitectura} muestra cómo se relacionan las piezas. En pocas palabras:
+\begin{itemize}\setlength\itemsep{0pt}
+\item \textbf{MariaDB} guarda los datos de PowerDNS, WordPress, Joomla y PowerAdmin, y solo acepta conexiones locales (\texttt{127.0.0.1}).
+\item \textbf{Apache} recibe todas las peticiones web en el puerto 80 y elige el sitio según el nombre que pidió el visitante.
+\item \textbf{Postfix, Dovecot y RoundCube} cubren el envío, el almacenamiento y la lectura del correo.
+\item \textbf{vsftpd} reutiliza las cuentas de los sitios para que cada usuario administre solo sus archivos.
+\item \textbf{El chat} (aplicación de sockets) escucha en el puerto TCP/9000.
+\end{itemize}
 \begin{figure}[htbp]\centering
-\begin{tikzpicture}[>=Latex, node distance=9mm, every node/.style={font=\small}]
-\node[draw,rounded corners,fill=blue!8,text width=2.3cm,align=center] (cli) {Clientes externos\\navegador, FTP, correo, chat};
-\node[draw,rounded corners,fill=blue!8,right=17mm of cli,text width=2.0cm,align=center] (dns) {PowerDNS\\zona autoritativa\\TCP/UDP 53};
-\node[draw,rounded corners,fill=green!8,right=17mm of dns,text width=3.0cm,align=center] (vps) {VPS AlmaLinux\\200.13.5.39\\firewalld + SELinux};
-\draw[->] (cli)--node[above]{\scriptsize dig}(dns);
-\draw[->] (dns)--(vps);
-\node[draw,below=13mm of vps,text width=8.5cm,align=center] (apps) {Apache: web1 (WordPress), web2 (Joomla), web3 (Grav)\\PowerAdmin y RoundCube; Postfix y Dovecot\\vsftpd 2121/pasivo; chat TCP/9000};
-\draw[->] (vps)--(apps);
-\node[draw,below=10mm of apps,text width=5.2cm,align=center] (db) {MariaDB 127.0.0.1:3306\\pdns\_redes3 · web1\_db · web2\_db};
-\draw[->] (apps)--(db);
-\end{tikzpicture}
-\caption{Arquitectura general del VPS. Las flechas representan dependencias entre cliente, aplicaciones y persistencia; no son capturas de funcionamiento. Grav guarda páginas en archivos y no usa MariaDB.}\label{fig:arquitectura}
+\includegraphics[width=\linewidth]{recursos/diagrama-arquitectura-v2.png}
+\caption[Arquitectura de servicios]{Arquitectura del despliegue. Todos los servicios corren en el mismo VPS y MariaDB solo acepta conexiones locales. Es un diagrama de diseño, no una captura de prueba.}\label{fig:arquitectura}
 \end{figure}
 
-El flujo de resolución comienza en la zona autoritativa: los nombres \texttt{web1}, \texttt{web2} y \texttt{web3} apuntan a la misma dirección IPv4. Apache distingue las peticiones mediante el encabezado \texttt{Host} y selecciona el DocumentRoot correspondiente; compartir IP no implica compartir archivos ni cuentas. \texttt{dnsadmin} y \texttt{webmail} siguen el mismo mecanismo de VirtualHosts, pero sus aplicaciones cumplen funciones administrativas distintas. Se evitó publicar MariaDB: PowerDNS, WordPress, Joomla y PowerAdmin alcanzan el motor por \texttt{127.0.0.1}, y Grav persiste sus páginas en Markdown. Esta separación hace comprobable cada dependencia: si DNS responde pero un sitio no carga, el diagnóstico pasa por Apache, PHP-FPM, permisos y aplicación; si el sitio carga por \texttt{curl --resolve} pero no por nombre, debe revisarse la resolución.
+Reutilizamos las cuentas locales para FTP y para los buzones de correo, pero mantuvimos la separación mediante propietarios, permisos Unix y políticas SELinux: vsftpd encierra cada sesión en su HOME, Apache lee \texttt{public\_html}, Postfix entrega en formato Maildir y Dovecot expone esos buzones a RoundCube.
 
-Los servicios que usan identidades locales comparten cuentas sin compartir todos los permisos. vsftpd inicia la sesión dentro del HOME respectivo, mientras Apache necesita recorrer el HOME y leer \texttt{public\_html}. Postfix deposita el correo en Maildir y Dovecot lo entrega a RoundCube por IMAP. Esa reutilización de cuentas simplifica la autenticación del taller, pero exige distinguir los permisos de lectura web, escritura FTP, acceso al buzón y escritura temporal de cada CMS. El control se hizo en dos capas: propietario y modo Unix (DAC), y contexto/política SELinux. El apartado de seguridad documenta ambos porque una operación puede estar permitida por DAC y ser rechazada por SELinux.
+\subsection{Plan de nombres}
+Todos los nombres apuntan a la misma IP del VPS, porque todos los servicios viven en un solo servidor. La Tabla~\ref{tab:nombres} lista los nombres y su función. Apache distingue los sitios por el encabezado \texttt{Host}, no por la IP.
 
 \begin{longtable}{@{}p{3.1cm}p{4.6cm}p{5.0cm}@{}}
-\caption{Plan de nombres y destino de los registros de la zona.}\label{tab:nombres}\\
-\toprule Nombre & Registros/destino & Servicio \\
+\caption{Nombres DNS y destinos de los servicios.}\label{tab:nombres}\\
+\toprule Nombre & Registros / destino & Servicio \\
 \midrule\endfirsthead
-\toprule Nombre & Registros/destino & Servicio \\
+\toprule Nombre & Registros / destino & Servicio \\
 \midrule\endhead
 raíz & A 200.13.5.39; MX 10 mail; NS ns1; SOA & Zona y correo del dominio \\
 ns1 & A 200.13.5.39 & DNS autoritativo \\
@@ -109,312 +139,371 @@ mail / webmail & A 200.13.5.39 cada uno & Postfix-Dovecot / RoundCube \\
 dnsadmin & A 200.13.5.39 & PowerAdmin \\
 \bottomrule
 \end{longtable}
-Agregamos el A de la raíz para hacer coincidir la zona con el plan. En la comprobación final del 28 de septiembre, \texttt{pdnsutil zone check} reportó 11 registros, sin errores ni avisos. El padre delega en \texttt{zorro-darwin-ns.lazos.cl} y la zona hija declara \texttt{ns1.zorro-darwin.lazos.cl}; ambos nombres conducen a \texttt{200.13.5.39}. Las respuestas autoritativas y las consultas públicas funcionaron, por lo que esta diferencia de nombres no impidió la resolución observada.
 
+La zona final tiene 11 registros y \texttt{pdnsutil zone check} no reportó errores ni avisos. Un detalle que conviene aclarar: la zona padre delega el dominio en \texttt{zorro-darwin-ns.lazos.cl}, mientras que dentro de nuestra zona declaramos \texttt{ns1.zorro-darwin.lazos.cl}. Ambos nombres resuelven a \texttt{200.13.5.39}. La delegación del padre la administra el curso y nosotros no la modificamos; nos encargamos de que ambos nombres resolvieran a nuestro VPS.
+
+%=====================================================================
 \section{Implementación y validación por actividad}
+
 \subsection{Usuarios, directorios y permisos -- actividad 2}
-Se crearon \texttt{tredes3-cms1}, \texttt{tredes3-cms2} y \texttt{tredes3-cms3}, UID 1001--1003, con contraseñas bajo la fórmula exigida. Cada cuenta posee \ruta{/home/tredes3-cmsX/public_html} en modo 755. El HOME es \texttt{root:root 755} para que la raíz del chroot no sea escribible; la carpeta web es propiedad del usuario CMS respectivo. Apache lee los tres árboles mediante etiquetas SELinux y solo escribe en subdirectorios expresamente habilitados, como uploads en WordPress. No se usó modo 777. Se comprobó con \texttt{getent passwd}, \texttt{passwd -S}, \texttt{stat} y \texttt{ls -Z}; los detalles previos están en \evid{02-usuarios/} y la comprobación final en la Figura~\ref{fig:webconf}.
+\paragraph{Qué hicimos.} Creamos las tres cuentas locales pedidas, una por sitio: \texttt{tredes3-cms1}, \texttt{tredes3-cms2} y \texttt{tredes3-cms3}. La cuenta \texttt{tredes3}, entregada por el curso, la usamos para entrar por SSH y ejecutar el chat; no cuenta como cuenta de sitio. Las contraseñas siguen el formato \texttt{CmsX\_tRedeSN\_WXYZ} y no se reproducen aquí.
 
-La propiedad \texttt{root:root} del HOME responde a una restricción de vsftpd: con \texttt{allow\_writeable\_chroot=NO}, la raíz de la jaula no debe quedar modificable por el usuario autenticado. La escritura se desplaza un nivel hacia abajo, a \texttt{public\_html}, que pertenece a su cuenta. El modo 755 deja atravesar los directorios al proceso web sin conceder escritura a terceros; el propietario de cada sitio conserva la capacidad de subir o reemplazar sus archivos. Así se satisfacen simultáneamente el alojamiento bajo cuentas distintas y el FTP enjaulado. La salida de \texttt{stat} de la Figura~\ref{fig:webconf} muestra las tres correspondencias propietario--ruta, y las pruebas FTP posteriores comprueban que esa estructura funciona en una operación real, no solo sobre el papel.
+\begin{table}[htbp]\centering\small
+\caption{Cuentas, bases de datos y nomenclatura aplicada.}\label{tab:nomenclatura}
+\begin{tabular}{@{}p{2.4cm}p{3.1cm}p{3.6cm}p{3.4cm}@{}}\toprule
+Servicio & Cuenta local & Base / usuario SQL & Contraseña \\\midrule
+WordPress & \texttt{tredes3-cms1} & \texttt{web1\_db} / \texttt{web1\_user} & Formato requerido; omitida \\
+Joomla & \texttt{tredes3-cms2} & \texttt{web2\_db} / \texttt{web2\_user} & Formato requerido; omitida \\
+Grav & \texttt{tredes3-cms3} & Archivos Markdown (sin SQL) & Formato requerido; omitida \\
+PowerDNS & -- & \texttt{pdns\_redes3} / \texttt{dominio\_pdns} & Omitida \\
+\bottomrule\end{tabular}
+\end{table}
 
-\texttt{getent passwd} verificó que cada nombre resuelve a su UID, GID y HOME; \texttt{passwd -S} confirmó contraseñas establecidas sin exponer sus valores. Los directorios Maildir de CMS1 y CMS2 son privados dentro de sus HOME: la jaula FTP impide acceder a otros usuarios o al sistema, aunque cada titular puede ver su propio buzón. La evidencia textual \evid{02-usuarios/usuarios-directorios.txt} registra estos atributos y permite reproducir la revisión de permisos sin insertar una captura adicional de cada comando.
+\paragraph{Cómo lo configuramos y por qué.} Cada HOME quedó como \texttt{root:root} con modo 755, y dentro de él cada usuario tiene su \texttt{public\_html}, de su propiedad y modo 755. Este esquema tiene una razón concreta: vsftpd exige que la raíz de una jaula (chroot) \emph{no sea escribible} por el usuario, así que el HOME pertenece a root; pero el usuario sí necesita modificar su sitio, así que su \texttt{public\_html} es suyo. Apache solo necesita leer esos archivos. Así cada pieza tiene el permiso mínimo que necesita y no fue necesario usar 777 en ningún caso.
 
-\subsection{MariaDB, PowerDNS y zona -- actividad 3}
-MariaDB 10.11 escucha únicamente en \texttt{127.0.0.1:3306}; se retiraron las cuentas anónimas y la base \texttt{test} tras respaldar la BD. PowerDNS Authoritative 5.1.4 carga el backend \texttt{gmysql}, con \texttt{gmysql-host=127.0.0.1}, \texttt{gmysql-dbname=pdns\_redes3} y usuario \texttt{dominio\_pdns}. Este usuario solo se conecta desde 127.0.0.1; el privilegio \texttt{ALL} está delimitado a \texttt{pdns\_redes3.*}, sin alcance global. La contraseña sigue fuera del informe. La zona contiene SOA, NS, MX y los A del Cuadro~\ref{tab:nombres}; PowerDNS lee los registros de MariaDB y responde por UDP/TCP 53.
+\paragraph{Evidencia.} Con \texttt{getent passwd}, \texttt{passwd -S} y \texttt{stat} comprobamos que las tres cuentas existen, con sus HOME y permisos (transcripción en \evid{02-usuarios/usuarios-directorios.txt}). La Figura~\ref{fig:webconf} muestra propietarios y modos de los tres \texttt{public\_html}, y la Figura~\ref{fig:jaula} resume el esquema de permisos.
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[>=Latex,node distance=8mm,every node/.style={font=\small}]
+\node[draw,rounded corners,fill=blue!8,text width=3cm,align=center] (home) {HOME del usuario\\\texttt{root:root · 755}\\raíz no escribible de FTP};
+\node[draw,rounded corners,fill=green!10,below=of home,text width=3cm,align=center] (web) {\texttt{public\_html}\\propietario CMS · 755\\destino de escritura FTP};
+\node[draw,rounded corners,fill=blue!8,right=18mm of web,text width=2.6cm,align=center] (apache) {Apache\\lee contenido web};
+\draw[->] (home)--node[right]{\scriptsize contiene}(web);
+\draw[->] (web)--node[above]{\scriptsize lectura}(apache);
+\node[draw,rounded corners,fill=gray!10,left=18mm of web,text width=2.5cm,align=center] (ftp) {Cuenta FTP\\enjaulada en HOME};
+\draw[->] (ftp)--node[above]{\scriptsize puede escribir}(web);
+\end{tikzpicture}
+\caption[Permisos de la jaula y el sitio]{Separación de permisos de cada sitio. El HOME, propiedad de root, fija la jaula; la cuenta del CMS modifica su \texttt{public\_html}, que Apache lee.}\label{fig:jaula}
+\end{figure}
 
-La base \texttt{pdns\_redes3} contiene las tablas que utiliza el backend, entre ellas \texttt{domains}, \texttt{records}, \texttt{domainmetadata} y \texttt{cryptokeys}. Mantener el usuario SQL del DNS limitado a esa base impide que sus operaciones afecten las bases de los CMS. La restricción de \texttt{bind-address} a loopback añade una segunda barrera: incluso si existiera una regla de firewall equivocada, MariaDB no estaría escuchando en la interfaz pública según la medición de \texttt{ss}. PowerAdmin usa la misma base para administrar la zona; el acceso del proceso web a MariaDB requirió el booleano SELinux \texttt{httpd\_can\_network\_connect\_db}, sin desactivar \texttt{Enforcing}.
+\paragraph{Resultado.} Tres identidades independientes, con directorios propios y permisos ajustados, base para el aislamiento web y FTP que se prueba más adelante.
 
-El SOA identifica a \texttt{ns1.zorro-darwin.lazos.cl} como servidor principal; el NS publica ese nombre para la zona; los A traducen nombres de servicio a la IP del VPS; y el MX con preferencia 10 dirige el correo hacia \texttt{mail.zorro-darwin.lazos.cl}. El A de \texttt{ns1} es necesario para alcanzar al servidor DNS por su nombre. La zona tenía inicialmente diez registros válidos, pero carecía del A de la raíz. En la revisión final se añadió ese registro, se retiró el TXT temporal de prueba y la validación reportó once registros sin errores ni avisos. Esta secuencia explica por qué una prueba previa correcta de los subdominios no bastaba para declarar completo el plan de nombres.
+%---------------------------------------------------------------------
+\subsection{MariaDB, PowerDNS y zona DNS -- actividad 3}
+\paragraph{Qué hicimos.} Instalamos PowerDNS como servidor DNS \emph{autoritativo} (responde con los datos de nuestra zona, a diferencia de un resolvedor recursivo, que busca respuestas para otros) y le agregamos la zona \texttt{zorro-darwin.lazos.cl}.
 
-En la repetición del 28 de septiembre, las consultas desde el cliente externo separaron la delegación del padre, el NS y SOA del hijo, los A de la raíz y servicios, y el MX 10 hacia \texttt{mail}. Se consultó directamente a \texttt{200.13.5.39} por UDP y TCP; ambas respuestas contenían la bandera de autoridad \texttt{aa}. Una consulta a \texttt{1.1.1.1} obtuvo el A de la raíz. La Figura~\ref{fig:dns} muestra parte de esa secuencia. Los comandos y resultados completos, incluida la repetición final de 25 consultas, están en \evid{12-auditoria-lote1-dns-poweradmin/terminal-cliente-dns.txt} y \evid{12-auditoria-lote1-dns-poweradmin/terminal-cierre-externo.txt}.
+\paragraph{Cómo lo configuramos.} PowerDNS guarda sus registros en MariaDB mediante el backend \texttt{gmysql}. Creamos la base \texttt{pdns\_redes3} y el usuario \texttt{dominio\_pdns} con permisos limitados solo a esa base, y configuramos MariaDB en \texttt{127.0.0.1:3306}. En la zona usamos cuatro tipos de registro: SOA (quién es la autoridad y cada cuánto se actualiza), NS (qué servidor responde), A (dirección IPv4 de cada nombre) y MX (adónde va el correo).
 
-Comprobamos por separado el servidor y su persistencia. \texttt{pdns} estaba activo y escuchaba en 53/UDP y 53/TCP; firewalld tenía ambas reglas en runtime y en la configuración permanente. La zona contenía 11 registros, con serial SOA \texttt{2026092801} tras la prueba de edición. MariaDB seguía escuchando únicamente en loopback y \texttt{dominio\_pdns@127.0.0.1} conservaba privilegios sobre \texttt{pdns\_redes3.*}, no sobre todas las bases. La Figura~\ref{fig:dns-vps} resume estos controles internos. Validar la zona no sustituye la prueba externa: una base correcta podría quedar inaccesible por firewall. Por eso interpretamos juntas las dos figuras.
+\paragraph{Por qué esas decisiones.} Usamos MariaDB porque permite que PowerDNS y PowerAdmin compartan los mismos datos, y la mantuvimos en loopback para no exponer la base a Internet. PowerAdmin, que corre dentro de Apache, necesita conectarse a esa base; para permitirlo activamos el booleano SELinux \texttt{httpd\_can\_network\_connect\_db} en lugar de desactivar SELinux.
+
+\paragraph{Un error que nos enseñó algo.} Al principio la zona no tenía el registro A de la raíz. \texttt{pdnsutil zone check} igual daba resultado válido, porque revisa la sintaxis de lo que existe, no lo que falta; pero al consultar el nombre principal no obtuvimos dirección. Agregamos el registro y la zona quedó en 11 registros, con cero errores y cero avisos.
+
+\paragraph{Evidencia.} Consultamos la zona desde un equipo externo, directamente al servidor (200.13.5.39) por UDP y TCP y también a través del resolvedor público 1.1.1.1. Las respuestas directas traen la marca \texttt{aa} (respuesta autoritativa) y la consulta pública devolvió el A de la raíz. La Figura~\ref{fig:dns} muestra el resultado de SOA, NS, A y MX; la Figura~\ref{fig:dns-vps} muestra la misma información vista desde el propio VPS por SSH (PowerDNS y MariaDB activos, DNS escuchando, SOA con serial \texttt{2026092801} y MX). Comparar ambos puntos de vista permite confirmar que lo almacenado en la base es lo que efectivamente se responde en la red.
 \begin{figure}[H]\centering
-\includegraphics[width=.96\linewidth,height=.38\textheight,keepaspectratio]{12-auditoria-lote1-dns-poweradmin/terminal-cliente-resumen.png}
-\caption{Terminal del cliente externo, 28-09-2026: NS del padre y del hijo, SOA, A de la raíz y MX hacia mail. El resultado completo incluye consultas autoritativas por UDP y TCP y resolución mediante 1.1.1.1; fuente: \evid{12-auditoria-lote1-dns-poweradmin/terminal-cliente-dns.txt}.}\label{fig:dns}
+\includegraphics[width=.96\linewidth,height=.38\textheight,keepaspectratio]{12-auditoria-lote1-dns-poweradmin/terminal-cliente-resumen-recorte.png}
+\caption[Consultas DNS desde el cliente]{Consultas del 28-09-2026 desde un equipo externo: NS del padre y de la zona, SOA, A de la raíz y MX hacia \texttt{mail}. Las consultas por UDP, TCP y 1.1.1.1 devolvieron lo esperado.}\label{fig:dns}
 \end{figure}
 \begin{figure}[H]\centering
-\includegraphics[width=.96\linewidth,height=.38\textheight,keepaspectratio]{12-auditoria-lote1-dns-poweradmin/terminal-vps-resumen.png}
-\caption{Terminal del VPS: servicio PowerDNS, escucha de DNS, zona válida, firewall y base local. La transcripción \evid{12-auditoria-lote1-dns-poweradmin/terminal-vps-dns-base.txt} identifica los comandos y oculta la contraseña del backend.}\label{fig:dns-vps}
+\includegraphics[width=.96\linewidth,height=.38\textheight,keepaspectratio]{12-auditoria-lote1-dns-poweradmin/terminal-vps-resumen-recorte.png}
+\caption[Validación DNS desde el VPS]{Salida remota de la sesión SSH del 28-09-2026: PowerDNS y MariaDB activos, escucha DNS, SOA y MX. Se omitió el comando local para no mostrar la ruta de la llave SSH.}\label{fig:dns-vps}
 \end{figure}
 
+\paragraph{Resultado.} La zona responde correctamente desde fuera del VPS, con autoridad, por UDP y TCP, y el MX apunta a \texttt{mail}.
+
+%---------------------------------------------------------------------
 \subsection{PowerAdmin -- actividad 4}
-PowerAdmin 4.3.5 se publica por \texttt{dnsadmin.zorro-darwin.lazos.cl}. Al inicio de la revisión la aplicación mostraba un error porque aún estaba presente su directorio instalador. Se movió al respaldo y se comprobó acceso autenticado y vista de la zona. Una primera prueba con el TXT \texttt{\_revision} terminó con su retiro. El 28 de septiembre repetimos la operación con \texttt{\_auditoria-g3-20260928}: antes de editar, respaldamos \texttt{pdns\_redes3} fuera de Git, creamos una cuenta administrativa temporal, añadimos el TXT desde PowerAdmin y obtuvimos el valor por \texttt{dig}. Luego eliminamos el registro desde la interfaz y retiramos la cuenta temporal. La contraseña de la cuenta administrativa preexistente no se probó.
+\paragraph{Qué hicimos.} Instalamos PowerAdmin, la interfaz web para ver y editar los registros DNS, y la publicamos como \texttt{dnsadmin.zorro-darwin.lazos.cl}, conectada a la base \texttt{pdns\_redes3}.
 
-La prueba del TXT une interfaz, base y respuesta DNS. La Figura~\ref{fig:power-txt} muestra el registro temporal en una zona de 12 filas; la Figura~\ref{fig:power} muestra la zona de nuevo con 11. En ambas etapas, una respuesta anterior permaneció en la caché de PowerDNS: primero un \texttt{NXDOMAIN} tras crear el registro y luego el valor positivo después de borrarlo. Usamos \texttt{pdns\_control purge} solo para ese nombre y repetimos \texttt{dig}. La ausencia final consta en la consulta y en el conteo SQL; la captura de la tabla final, por sí sola, no prueba el instante del borrado. La transcripción es \evid{12-auditoria-lote1-dns-poweradmin/terminal-poweradmin-txt.txt}. No se modificó la delegación del padre ni se reinició el VPS.
+\paragraph{Cómo lo comprobamos.} No nos bastó con que la página cargara. Hicimos una prueba de escritura real: respaldamos la base, creamos una cuenta temporal, agregamos un registro TXT desde la interfaz, lo consultamos con \texttt{dig} y luego lo borramos (junto con la cuenta temporal) para no dejar datos de prueba en la zona entregada. Así demostramos que un cambio hecho en la web llega a lo que el servidor DNS responde.
+
+\paragraph{Un problema y su explicación.} Justo después de crear el TXT, \texttt{dig} no lo mostraba: la caché de PowerDNS conservaba una respuesta negativa anterior. Purgamos solo ese nombre con \texttt{pdns\_control} y el dato apareció; al borrarlo, ocurrió lo mismo a la inversa. También, tras instalar, PowerAdmin mostraba un error porque el directorio del instalador seguía presente; lo movimos al respaldo.
+
+\paragraph{Evidencia.} La Figura~\ref{fig:power-txt} muestra el TXT temporal creado en PowerAdmin y la Figura~\ref{fig:power} la zona final con los 11 registros que coinciden con las consultas \texttt{dig} de la sección anterior.
 \begin{figure}[H]\centering
 \includegraphics[width=.95\linewidth,height=.40\textheight,keepaspectratio]{12-auditoria-lote1-dns-poweradmin/poweradmin-txt-creado.png}
-\caption{PowerAdmin autenticado con URL visible: TXT temporal creado y zona con 12 registros. La consulta autoritativa tras purgar una respuesta negativa en caché devolvió ese valor.}\label{fig:power-txt}
+\caption[Alta del TXT temporal]{PowerAdmin autenticado, con la URL visible: TXT temporal creado (zona con 12 registros en ese momento). La consulta autoritativa, tras purgar la caché, devolvió ese valor.}\label{fig:power-txt}
 \end{figure}
 \begin{figure}[H]\centering
 \includegraphics[width=.95\linewidth,height=.40\textheight,keepaspectratio]{12-auditoria-lote1-dns-poweradmin/poweradmin-zona-final-completa.png}
-\caption{Vista final de PowerAdmin con los 11 registros operativos, sin el TXT de auditoría. El borrado se confirmó además mediante SQL y \texttt{dig} tras purgar la entrada positiva de caché.}\label{fig:power}
+\caption[Zona DNS final de once registros]{Zona final en PowerAdmin, con los 11 registros operativos después de borrar el TXT temporal. La ausencia del TXT también se verificó con \texttt{dig}.}\label{fig:power}
 \end{figure}
 
-\subsection{Apache, VirtualHosts y CMS -- actividades 5 y 6}
-Apache 2.4 enruta \texttt{web1}, \texttt{web2} y \texttt{web3} mediante tres VirtualHosts en \ruta{/etc/httpd/conf.d/cms-sites.conf}, cada uno con DocumentRoot en el \texttt{public\_html} del usuario correspondiente. \texttt{httpd -S} también lista \texttt{dnsadmin} y \texttt{webmail}. PHP 8.3 se sirve por php-fpm con límite de memoria de 512 MiB y máximo de seis procesos; esto resolvió un HTTP 500 inicial de Joomla sin permisos generales de escritura.
+\paragraph{Resultado.} PowerAdmin es accesible por nombre, muestra la zona completa y sus cambios se reflejan en el DNS real.
 
-Se comprobó la sintaxis de Apache con \texttt{apachectl configtest} y después se consultó cada sitio con el nombre de Host apropiado. El resultado HTTP 200 en la raíz de los tres CMS confirma que Apache selecciona un VirtualHost y entrega una página; las comprobaciones de los accesos administrativos añaden que cada aplicación PHP está instalada y responde en su ruta. Durante la instalación se utilizó \texttt{curl --resolve} para fijar la dirección local y enviar el Host correcto, lo que permitió depurar Apache antes de depender de DNS público. En la revisión final se consultaron los nombres publicados desde el cliente y se contrastó el texto del contenido con el esperado.
+%---------------------------------------------------------------------
+\subsection{Apache, VirtualHosts y tres CMS -- actividades 5 y 6}
+\paragraph{Qué hicimos.} Instalamos Apache 2.4 con PHP 8.3 (PHP-FPM) y publicamos tres sitios, cada uno con un CMS distinto: WordPress en web1, Joomla en web2 y Grav en web3. Los tres VirtualHosts están en \ruta{/etc/httpd/conf.d/cms-sites.conf}, cada uno con su propio DocumentRoot dentro del \texttt{public\_html} de su cuenta.
 
-WordPress 7.1.2 usa \texttt{web1\_db}, tablas con prefijo \texttt{wp3\_}. Su portada muestra un artículo sobre el zorro de Darwin. Joomla 6.1.3 usa \texttt{web2\_db} y prefijo \texttt{g3j\_}; se publicó desde su administrador un artículo destacado sobre conservación del bosque nativo. Grav 2.2.1 almacena su portada en \ruta{/home/tredes3-cms3/public_html/user/pages/01.home/default.md}; se sustituyó la bienvenida del producto por una guía de hábitats en Markdown, sin BD. Los nombres de BD de WordPress/Joomla son los efectivamente implementados; la planificación preliminar en \texttt{AGENT.md} usaba otros nombres y no debe confundirse con el despliegue.
+\paragraph{Cómo funciona.} Los tres nombres apuntan a la misma IP. Cuando alguien abre \texttt{web2.zorro-darwin.lazos.cl}, el DNS entrega la IP, el navegador envía la petición con ese nombre en el encabezado \texttt{Host}, Apache lo usa para elegir el VirtualHost correcto y PHP-FPM ejecuta el CMS. WordPress y Joomla consultan MariaDB; Grav no necesita base de datos porque guarda sus páginas como archivos Markdown (la base \texttt{web3\_db} existe pero quedó vacía y no se usa). La Figura~\ref{fig:flujo-web} resume este recorrido.
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[>=Latex,node distance=8mm,every node/.style={font=\small}]
+\node[draw,rounded corners,fill=blue!8,text width=2.1cm,align=center] (browser) {Navegador\\solicita nombre};
+\node[draw,rounded corners,fill=blue!8,right=of browser,text width=2.0cm,align=center] (dns) {DNS\\nombre a IP};
+\node[draw,rounded corners,fill=green!10,right=of dns,text width=2.5cm,align=center] (apache) {Apache\\lee \texttt{Host}};
+\node[draw,rounded corners,fill=green!10,right=of apache,text width=2.5cm,align=center] (cms) {VirtualHost\\selecciona CMS};
+\node[draw,rounded corners,fill=blue!8,right=of cms,text width=2.5cm,align=center] (persist) {PHP-FPM +\\MariaDB o Markdown};
+\draw[->] (browser)--(dns);\draw[->] (dns)--(apache);\draw[->] (apache)--(cms);\draw[->] (cms)--(persist);
+\draw[<-] ([yshift=-5mm]browser.south east)--node[below]{\scriptsize respuesta HTTP}( [yshift=-5mm]persist.south west);
+\end{tikzpicture}
+\caption[Cadena de solicitud web]{Recorrido de una solicitud web. WordPress y Joomla usan MariaDB; Grav lee archivos Markdown.}\label{fig:flujo-web}
+\end{figure}
 
-\begin{center}\small
-\begin{tabular}{@{}p{2.1cm}p{3.0cm}p{3.9cm}p{4.0cm}@{}}\toprule
-Sitio & Cuenta y persistencia & Contenido final & Verificación específica \\\midrule
-web1 & cms1; \texttt{web1\_db}, \texttt{wp3\_} & Artículo del zorro de Darwin & Portada HTTP 200; carpeta de cargas escribible con ACL y contexto acotados. \\
-web2 & cms2; \texttt{web2\_db}, \texttt{g3j\_} & Artículo destacado de bosque nativo & Guardado en administración, fila en BD y publicación pública HTTP 200. \\
-web3 & cms3; archivo Markdown & Guía de hábitats & Archivo \texttt{default.md} propio y portada HTTP 200. \\
+\begin{table}[H]\centering\small
+\caption{CMS, persistencia y contenido publicado.}\label{tab:cms}
+\begin{tabular}{@{}p{1.6cm}p{3.6cm}p{3.9cm}p{4.0cm}@{}}\toprule
+Sitio & CMS y persistencia & Contenido final & Prueba \\\midrule
+web1 & WordPress 7.1.2; \texttt{web1\_db}, prefijo \texttt{wp3\_}; cuenta CMS1 & Artículo del zorro de Darwin & Portada HTTP 200; escritura acotada en uploads \\
+web2 & Joomla 6.1.3; \texttt{web2\_db}, prefijo \texttt{g3j\_}; cuenta CMS2 & Artículo de bosque nativo & Artículo guardado y publicado \\
+web3 & Grav 2.2.1; archivo Markdown; cuenta CMS3 & Guía de hábitats & Portada HTTP 200 \\
 \bottomrule\end{tabular}
-\end{center}
+\end{table}
 
-La diferencia de persistencia es técnica y verificable. WordPress y Joomla guardan sus contenidos estructurados en bases separadas y utilizan usuarios SQL propios limitados a sus bases; Grav lee el Markdown de su árbol de archivos, por lo que no depende de una tercera base poblada. Se observó que la base \texttt{web3\_db} quedó vacía de la planificación inicial y no se presenta como almacenamiento de Grav. Joomla tenía inicialmente cero artículos y su pantalla pública no bastaba para cumplir la exigencia de contenido propio; la publicación posterior, la fila en \texttt{g3j\_content} y la portada final son las evidencias de cierre. En WordPress, la prueba de escritura y borrado en uploads verificó el ajuste de ACL/contexto sin hacer escribible todo el sitio.
+\paragraph{Decisiones sobre permisos y SELinux.} Como Apache solo debe escribir donde el CMS lo necesita, en WordPress limitamos su escritura a la carpeta \texttt{uploads} con una ACL y una etiqueta SELinux específica, y en Joomla etiquetamos solo las rutas de caché necesarias. El contenido que solo se lee lleva la etiqueta \texttt{httpd\_sys\_content\_t} y el que se escribe, \texttt{httpd\_sys\_rw\_content\_t}. Activamos \texttt{httpd\_enable\_homedirs} para que Apache pueda servir desde los HOME. Las etiquetas se hicieron persistentes con reglas de contexto y se verificaron con \texttt{restorecon} y \texttt{matchpathcon -V}, para que sobrevivan a un reetiquetado.
 
-Las Figuras~\ref{fig:wp}, \ref{fig:joomla} y \ref{fig:grav} muestran los tres subdominios con contenido diferente. El navegador devolvió HTTP 200 y encontró los títulos esperados. Joomla además registró un artículo publicado en su BD y confirmó \emph{Article saved} en administración; el CMS3 conservó propietario \texttt{tredes3-cms3} y modo 644 sobre el Markdown. Para WordPress se aplicó ACL para \texttt{apache} y contexto \texttt{httpd\_sys\_rw\_content\_t} solo al directorio uploads; una prueba de creación y borrado desde PHP confirmó escritura web. El resto del árbol conserva lectura restringida por DAC y SELinux.
+\paragraph{Problemas encontrados.} Joomla devolvía HTTP 500 porque el límite de memoria de PHP era insuficiente y su caché no tenía la etiqueta SELinux de escritura; subimos el límite a 512 MiB y etiquetamos esa ruta. Además, la primera edición del artículo en Joomla mostraba etiquetas HTML como texto; lo corregimos desde su administrador y comprobamos el registro en la base (\texttt{g3j\_content}). Grav guarda su guía en \ruta{/home/tredes3-cms3/public_html/user/pages/01.home/default.md}.
 
-La Figura~\ref{fig:webconf} complementa las tres portadas: \texttt{httpd -S} asocia cada nombre a su VirtualHost, \texttt{stat} asocia cada \texttt{public\_html} a su cuenta, la consulta SQL muestra el artículo Joomla y \texttt{pdnsutil} valida la zona. Ninguna de esas salidas por separado identifica el CMS que ve el visitante; al combinar la configuración, la persistencia y el contenido visible se puede seguir el recorrido completo desde el nombre DNS hasta el archivo o registro servido.
+\paragraph{Evidencia.} Antes de publicar el DNS usamos \texttt{curl -{}-resolve} para enviar el \texttt{Host} de cada sitio directamente al VPS, lo que permite probar los VirtualHosts sin depender del DNS. Después consultamos los nombres públicos. \texttt{apachectl configtest} validó la sintaxis y \texttt{httpd -S} mostró los nombres asignados a cada archivo de sitio. Las Figuras~\ref{fig:wp}, \ref{fig:joomla} y \ref{fig:grav} muestran cada portada con su contenido propio, y la Figura~\ref{fig:webconf} muestra propietarios y modos de cada \texttt{public\_html}.
 \begin{figure}[H]\centering
 \includegraphics[width=.9\linewidth,height=.40\textheight,keepaspectratio]{10-revision/web1-final.png}
-\caption{Portada final de web1 con artículo propio en WordPress. El nombre del sitio, el contenido y el subdominio distinguen este CMS de los otros dos.}\label{fig:wp}
+\caption[WordPress en web1]{web1 muestra el artículo sobre el zorro de Darwin publicado con WordPress.}\label{fig:wp}
 \end{figure}
 \begin{figure}[H]\centering
 \includegraphics[width=.9\linewidth,height=.40\textheight,keepaspectratio]{10-revision/joomla-contenido-publico.png}
-\caption{Portada final de web2: el artículo destacado fue guardado en la administración de Joomla y apareció en el sitio público. La validación corrigió una primera publicación con marcas HTML literales.}\label{fig:joomla}
+\caption[Joomla en web2]{web2 muestra el artículo de bosque nativo publicado con Joomla, ya corregido el problema de las etiquetas HTML.}\label{fig:joomla}
 \end{figure}
 \begin{figure}[H]\centering
 \includegraphics[width=.9\linewidth,height=.40\textheight,keepaspectratio]{10-revision/web3-final.png}
-\caption{Portada final de web3 servida por Grav desde un archivo Markdown de la cuenta cms3. La guía reemplaza la página de instalación predeterminada y evidencia un mecanismo de almacenamiento independiente.}\label{fig:grav}
+\caption[Grav en web3]{web3 muestra la guía de hábitats que Grav carga desde su archivo Markdown.}\label{fig:grav}
 \end{figure}
 \begin{figure}[H]\centering
-\includegraphics[width=.95\linewidth,height=.37\textheight,keepaspectratio,trim=15 645 900 90,clip]{10-revision/solucion-web.png}
-\caption{Configuración de VirtualHosts, propietario de cada \texttt{public\_html}, un artículo Joomla en BD y chequeo de la zona DNS. Esta terminal respalda la relación usuario--ruta--nombre, además de las capturas de navegador.}\label{fig:webconf}
+\includegraphics[width=.95\linewidth,height=.12\textheight,keepaspectratio]{10-revision/solucion-web-permisos-recorte.png}
+\caption[Propietarios y permisos web]{Propietarios y modos de los tres directorios \texttt{public\_html}. La captura completa está en la carpeta de evidencias.}\label{fig:webconf}
 \end{figure}
 
+\paragraph{Resultado.} Tres sitios independientes, con tres CMS distintos y contenido diferenciable, cada uno bajo su propio usuario y con permisos ajustados.
+
+%---------------------------------------------------------------------
 \subsection{vsftpd -- actividad 7}
-vsftpd 3.0.5 escucha en 2121/TCP; usa rango pasivo 30000--30100/TCP y dirección pasiva 200.13.5.39 para sortear el bloqueo institucional de FTP/21. Las tres cuentas locales están en una allow-list, \texttt{anonymous\_enable=NO}, \texttt{chroot\_local\_user=YES}, \texttt{local\_root=/home/\$USER} y \texttt{allow\_writeable\_chroot=NO}. La raíz del chroot es de \texttt{root}; cada usuario puede modificar su \texttt{public\_html} y no atravesar a otros HOME. CMS1 y CMS2 pueden ver su propio Maildir dentro de su HOME; el aislamiento prometido es entre cuentas y sistema, no exclusividad de una única carpeta web.
+\paragraph{Qué hicimos.} Configuramos vsftpd 3.0.5 para que cada una de las tres cuentas pueda administrar por FTP solo su propio sitio.
 
-El protocolo FTP usa un canal de control y otro de datos. El puerto 2121 recibe la autenticación y los comandos; en modo pasivo el servidor informa una dirección y un puerto del rango 30000--30100 para transferir los bytes. Por eso se configuró \texttt{pasv\_address} con la IP pública y se autorizó el rango completo en firewalld. Abrir únicamente 2121 habría permitido llegar al saludo e incluso iniciar sesión, pero las subidas o listados podrían fallar al abrir el canal de datos. En SELinux se etiquetaron el puerto de control como \texttt{ftp\_port\_t} y el rango pasivo como \texttt{ftp\_data\_port\_t}; \texttt{ftpd\_use\_passive\_mode} quedó activado. La ruta \ruta{/run/vsftpd/empty} utilizada como \texttt{secure\_chroot\_dir} se recrea mediante una regla de tmpfiles, ya que \ruta{/run} es temporal.
-
-Después de etiquetar los árboles web para Apache, las subidas daban 553 aun cuando el propietario tenía permiso DAC. El análisis con \texttt{sesearch} mostró que la autorización preexistente para esa operación dependía del booleano amplio \texttt{ftpd\_full\_access}, que permaneció apagado. La política SELinux instalada no permitía a \texttt{ftpd\_t} añadir archivos en directorios \texttt{httpd\_sys\_content\_t}. Se instaló \texttt{setools-console} para esta consulta. Tras respaldar configuración y contextos, se instaló el módulo local \texttt{ftpd\_httpd\_content}, que concede a ese dominio las operaciones de archivo y directorio necesarias sobre ese tipo; las reglas DAC y la jaula mantienen separadas las cuentas. No se activaron \texttt{ftpd\_full\_access} ni \texttt{ftpd\_anon\_write}; SELinux siguió \texttt{Enforcing}.
-
-El código fuente del módulo se conserva en \ruta{configuraciones/selinux/ftpd_httpd_content.te}. La separación entre cuentas sigue dependiendo de los propietarios, permisos y jaulas individuales; la regla SELinux no reemplaza esos controles.
-
-Desde el equipo externo se autenticaron las tres cuentas. Cada una subió su archivo, lo sobrescribió con versión 2, y la URL de su propio sitio devolvió HTTP 200 con bytes idénticos a la nueva versión. Acceso a \texttt{/etc} y al HOME de otra cuenta devolvió 550; el usuario anónimo recibió 530. La Figura~\ref{fig:ftp} muestra todas las fases y resultados, no solo el login.
-
-La comparación HTTP vincula cada transferencia con su DocumentRoot; el registro completo se conserva en \evid{10-revision/solucion-ftp.txt}. La Figura~\ref{fig:ftp} reúne creación, reemplazo, acceso web y rechazos para los tres usuarios.
-\begin{figure}[H]\centering
-\includegraphics[width=.96\linewidth,height=.51\textheight,keepaspectratio,trim=15 575 1040 90,clip]{10-revision/solucion-ftp.png}
-\caption{Terminal real con autenticación, intentos de salida de jaula, doble subida pasiva por usuario, lectura HTTP de la versión actualizada y rechazo del anónimo. Archivo de comandos y resultados: \evid{10-revision/solucion-ftp.txt}.}\label{fig:ftp}
-\end{figure}
-
-\subsection{Correo: Postfix, Dovecot y RoundCube -- actividad 8}
-Postfix 3.5.25 acepta SMTP en TCP/25 y entrega el dominio como correo local en \texttt{Maildir/}; Dovecot 2.3.16 ofrece IMAP local e IMAPS en TCP/993. \texttt{mail.zorro-darwin.lazos.cl} tiene A y es destino MX 10. RoundCube 1.7.4 está en \texttt{webmail} y autentica por IMAP local con TLS. Las cuentas comprobadas son \texttt{tredes3-cms1@zorro-darwin.lazos.cl} y \texttt{tredes3-cms2@zorro-darwin.lazos.cl}.
-
-El circuito se compone de funciones diferentes. El MX anuncia adónde dirigir el correo del dominio; Postfix acepta y deposita el mensaje para una cuenta local; Dovecot expone el Maildir mediante IMAP; y RoundCube permite escribir, enviar y leer desde el navegador. La configuración inicial había tratado los destinatarios como alias virtuales y Postfix devolvía \emph{User unknown in virtual alias table}. Al declarar el dominio en \texttt{mydestination} y usar las cuentas locales se eliminó esa discrepancia. Las pruebas tempranas de \texttt{doveadm} y de entrega local validaron los buzones, pero todavía no garantizaban que RoundCube pudiera enviar, por lo que se efectuó una prueba adicional desde la interfaz.
-
-La Figura~\ref{fig:flujo-correo} ordena los componentes que intervienen en el trayecto probado. Las flechas muestran funciones distintas, no paquetes capturados ni una prueba por sí mismas; la llegada del mensaje se verifica en las Figuras~\ref{fig:mail1} y \ref{fig:mail2}.
+\paragraph{Conceptos que explican la configuración.} FTP usa dos canales: uno de control (órdenes y respuestas) y otro de datos (los archivos). En modo activo el servidor abre la conexión de datos hacia el cliente; en modo pasivo el cliente abre ambas. Elegimos el \textbf{modo pasivo} porque suele funcionar mejor a través de firewalls y NAT, y porque el servidor puede anunciar exactamente qué puertos usará. La Figura~\ref{fig:ftp-pasivo} muestra ambos canales.
 \begin{figure}[htbp]\centering
-\begin{tikzpicture}[>=Latex, node distance=4mm, every node/.style={font=\small}]
-\node[draw,rounded corners,fill=blue!8,text width=2.2cm,align=center] (a) {RoundCube\\CMS1 escribe};
-\node[draw,rounded corners,fill=blue!8,right=of a,text width=2.0cm,align=center] (b) {Postfix\\SMTP local};
-\node[draw,rounded corners,fill=blue!8,right=of b,text width=2.1cm,align=center] (c) {Maildir\\CMS2};
-\node[draw,rounded corners,fill=blue!8,right=of c,text width=1.9cm,align=center] (d) {Dovecot\\IMAP};
-\node[draw,rounded corners,fill=blue!8,right=of d,text width=2.2cm,align=center] (e) {RoundCube\\CMS2 lee};
-\draw[->] (a)--(b); \draw[->] (b)--(c); \draw[->] (c)--(d); \draw[->] (d)--(e);
+\begin{tikzpicture}[>=Latex,node distance=16mm,every node/.style={font=\small}]
+\node[draw,rounded corners,fill=blue!8,text width=3cm,align=center] (client) {Cliente FTP\\solicita conexión};
+\node[draw,rounded corners,fill=green!10,right=42mm of client,text width=3.6cm,align=center] (server) {vsftpd\\VPS 200.13.5.39};
+\draw[->] ([yshift=4mm]client.east)--node[above,align=center]{\scriptsize control TCP/2121\\órdenes y respuesta}([yshift=4mm]server.west);
+\draw[<->] ([yshift=-6mm]client.east)--node[below,align=center]{\scriptsize datos TCP/30000--30100\\el cliente inicia el canal pasivo}([yshift=-6mm]server.west);
+\node[draw,rounded corners,fill=gray!10,below=11mm of server,text width=3.6cm,align=center] (jail) {Jaula del usuario\\HOME no escribible\\\texttt{public\_html} escribible};
+\draw[->] (server)--node[right]{\scriptsize STOR / RETR}(jail);
 \end{tikzpicture}
-\caption{Flujo explicativo del correo de CMS1 a CMS2. La respuesta recorre el mismo camino con las cuentas intercambiadas; las capturas de buzón abierto acreditan el resultado.}\label{fig:flujo-correo}
+\caption[Canales FTP en modo pasivo]{FTP pasivo: control en el puerto 2121 y datos en el rango 30000--30100. Las operaciones de archivo quedan dentro de la jaula de cada cuenta.}\label{fig:ftp-pasivo}
 \end{figure}
 
-La entrega inicial por línea de comandos y el login web no acreditaban envío desde RoundCube. La prueba del navegador devolvió \emph{Error SMTP} y el log registró \emph{Connection refused}. La versión instalada lee \texttt{smtp\_host}, cuyo valor por defecto era \texttt{localhost:587}; la configuración usaba las opciones antiguas \texttt{smtp\_server} y \texttt{smtp\_port}, mientras Postfix escucha en 25. Tras respaldar \ruta{/var/www/roundcube/config/config.inc.php}, se fijó \texttt{smtp\_host=127.0.0.1:25}; \texttt{php -l} confirmó sintaxis válida. SMTP local no requirió credenciales adicionales para destinatarios de su propio dominio.
+\paragraph{Cómo lo configuramos.} Los parámetros clave son: control en el puerto \texttt{2121/TCP} (el puerto 21 está bloqueado en la red del taller), rango pasivo \texttt{30000--30100/TCP} anunciando la IP \texttt{200.13.5.39}, acceso anónimo deshabilitado, solo las tres cuentas CMS autorizadas y \texttt{chroot\_local\_user=YES} con raíz en el HOME de cada usuario. Ese HOME es \texttt{root:root 755} (explicado en la actividad 2), y cada usuario escribe en su \texttt{public\_html}; CMS1 y CMS2 además ven su Maildir. Abrimos esos puertos en firewalld y etiquetamos en SELinux el puerto de control como \texttt{ftp\_port\_t} y el rango de datos como \texttt{ftp\_data\_port\_t}, además de activar \texttt{ftpd\_use\_passive\_mode}. Una regla \texttt{tmpfiles} recrea \ruta{/run/vsftpd/empty}, necesaria porque \ruta{/run} es un directorio temporal.
 
-El rechazo de conexión se explicó por la diferencia entre el puerto que intentaba usar la aplicación (587) y el puerto local disponible (25). Cambiar la clave leída por la versión instalada corrigió el destino efectivo, sin abrir un puerto de submission que no formaba parte del despliegue. \texttt{php -l} solo demuestra que el archivo no tiene errores de sintaxis; la prueba decisiva fue que el mensaje salió de RoundCube, llegó al Maildir de CMS2 y pudo leerse por IMAP. La misma secuencia se repitió en sentido contrario para evitar concluir éxito a partir de un solo envío.
+\paragraph{El problema más instructivo: el error 553.} Al subir un archivo, el login funcionaba pero la transferencia devolvía \emph{553 Could not create file}, aunque los permisos Unix (DAC) del propietario permitían escribir. La causa estaba en SELinux: el proceso de vsftpd (\texttt{ftpd\_t}) no tenía permiso para crear archivos en el tipo de contenido web de Apache. Lo diagnosticamos con \texttt{stat}, \texttt{ls -Z} y \texttt{sesearch} (instalando \texttt{setools-console}) y lo resolvimos con un módulo de política local y acotado, \texttt{ftpd\_httpd\_content} (código en \ruta{configuraciones/selinux/ftpd_httpd_content.te}). No activamos \texttt{ftpd\_full\_access} ni \texttt{ftpd\_anon\_write}, y SELinux siguió en \texttt{Enforcing}. La lección: los permisos de archivo y la política SELinux son dos controles distintos, y ambos deben permitir la operación.
 
-La comprobación funcional posterior se ejecutó en RoundCube: CMS1 redactó y envió a CMS2; CMS2 abrió el mensaje (Figura~\ref{fig:mail1}), envió una respuesta, y CMS1 abrió esa respuesta (Figura~\ref{fig:mail2}). Asunto, remitente y cuerpo identifican la ida y la vuelta. Postfix y Dovecot permanecieron activos. Los servicios de correo presentan un certificado TLS autofirmado de laboratorio; RoundCube envía al SMTP local en \texttt{127.0.0.1:25} y su sitio web se publica por HTTP. Para la captura automatizada se usó un túnel SSH con proxy SOCKS, por lo que no se introdujeron contraseñas en una conexión HTTP expuesta durante la prueba. La publicación ordinaria por HTTP sigue siendo un límite de seguridad pendiente para uso real.
+\paragraph{Evidencia.} Probamos las tres cuentas con un cliente automatizado desde el equipo local. Cada cuenta se autenticó, listó su jaula, subió un archivo y lo reemplazó (respuesta 226 en cada transferencia), y el sitio web correspondiente devolvió HTTP 200 con el contenido idéntico al subido. Esto demuestra la correspondencia usuario, sitio y directorio FTP. El intento anónimo recibió 530, y los intentos de entrar a \texttt{/etc} o al HOME de otra cuenta recibieron 550, porque esas rutas simplemente no existen dentro de la jaula. La Figura~\ref{fig:ftp} resume la prueba.
+\begin{figure}[H]\centering
+\includegraphics[width=.96\linewidth,height=.45\textheight,keepaspectratio]{10-revision/solucion-ftp-recorte.png}
+\caption[Prueba automatizada de FTP]{Las tres cuentas transfirieron archivos y el cliente comparó su contenido por HTTP. La transcripción completa registra también el rechazo del acceso anónimo.}\label{fig:ftp}
+\end{figure}
 
-Las capturas muestran los mensajes \emph{abiertos} dentro de cada buzón, no solo formularios de composición o avisos de envío. Esta diferencia acredita recepción y lectura: el contenido aparece después del trayecto RoundCube--Postfix--Maildir--Dovecot--RoundCube. Las transcripciones \evid{10-revision/solucion-correo-navegador.txt} y \evid{10-revision/solucion-correo-respuesta.txt} registran el flujo y sus resultados. El certificado autofirmado permite cifrar las conexiones configuradas en el laboratorio, aunque no entrega la confianza pública de una entidad certificadora. Tampoco convierte el acceso HTTP al webmail en HTTPS; por ello el resultado se limita al entorno probado.
+\paragraph{Resultado.} FTP en puerto alternativo, sin acceso anónimo, con cada usuario aislado y escribiendo solo en su sitio, todo con SELinux activo. Esto demuestra el aislamiento en los casos probados; no afirmamos haber probado todas las rutas posibles.
+
+%---------------------------------------------------------------------
+\subsection{Correo: Postfix, Dovecot y RoundCube -- actividad 8}
+\paragraph{Cómo funciona el correo en nuestra solución.} El registro MX indica qué servidor recibe el correo del dominio (\texttt{mail}). Postfix, el servidor SMTP, recibe cada mensaje y lo deposita en el buzón Maildir de la cuenta local. Dovecot permite leer ese buzón por IMAP, y RoundCube es la página web desde donde el usuario redacta y lee. La Figura~\ref{fig:flujo-correo} muestra el recorrido que probamos con las cuentas CMS1 y CMS2.
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[>=Latex, scale=.92, transform shape, node distance=4mm, every node/.style={font=\small}]
+\node[draw,rounded corners,fill=blue!8,text width=2.0cm,align=center] (a) {RoundCube\\CMS1 envía};
+\node[draw,rounded corners,fill=blue!8,right=of a,text width=2.0cm,align=center] (b) {Postfix\\SMTP/25};
+\node[draw,rounded corners,fill=green!10,right=of b,text width=2.0cm,align=center] (c) {Maildir\\buzón CMS2};
+\node[draw,rounded corners,fill=blue!8,right=of c,text width=2.0cm,align=center] (d) {Dovecot\\IMAP};
+\node[draw,rounded corners,fill=blue!8,right=of d,text width=2.0cm,align=center] (e) {RoundCube\\CMS2 lee};
+\draw[->] (a)--(b); \draw[->] (b)--(c); \draw[->] (c)--(d); \draw[->] (d)--(e);
+\draw[<-,dashed] ([yshift=-8mm]a.south east)--node[below,text width=3cm,align=center]{\scriptsize Respuesta: CMS2 envía;\\CMS1 recibe}([yshift=-8mm]e.south west);
+\end{tikzpicture}
+\caption[Flujo de entrega y lectura de correo]{Flujo de correo probado: RoundCube entrega por SMTP a Postfix, que deposita el mensaje en Maildir; Dovecot expone el buzón por IMAP. La respuesta hace el mismo recorrido con las cuentas intercambiadas.}\label{fig:flujo-correo}
+\end{figure}
+
+\paragraph{Qué configuramos.} Postfix 3.5.25 en TCP/25, Dovecot 2.3.16 con IMAP e IMAPS (993) y RoundCube 1.7.4 publicado como \texttt{webmail}. Usamos un certificado autofirmado para el TLS del correo. Los parámetros clave están en la Tabla~\ref{tab:parametros} del anexo.
+
+\paragraph{Decisiones y límites.} Usamos IMAP/IMAPS y \textbf{no implementamos POP3}. Tampoco publicamos HTTPS en el puerto 443: el webmail funciona por HTTP en este despliegue, lo que es aceptable para el laboratorio pero no para un servicio real.
+
+\paragraph{Problemas encontrados.} Hubo dos, y ambos se resolvieron leyendo los registros en lugar de probar cambios al azar:
+\begin{enumerate}\setlength\itemsep{0pt}
+\item \emph{``User unknown in virtual alias table''.} Postfix trataba los destinatarios como alias virtuales. Configuramos el dominio en \texttt{mydestination} y usamos las cuentas locales.
+\item \emph{``Error SMTP'' en RoundCube.} El registro mostraba \emph{Connection refused}: RoundCube intentaba conectar a \texttt{localhost:587}, pero nuestro Postfix escuchaba en el 25. Fijamos \texttt{smtp\_host=127.0.0.1:25} y revisamos la sintaxis con \texttt{php -l}.
+\end{enumerate}
+Además, RoundCube necesitaba conectar a IMAP y SMTP locales bajo SELinux. En vez de activar \texttt{httpd\_can\_network\_connect} (que da conectividad de red mucho más amplia), añadimos el módulo acotado \texttt{roundcube\_http\_mail}.
+
+\paragraph{Evidencia.} CMS1 envió un mensaje a CMS2 (Figura~\ref{fig:mail1}) y CMS2 respondió a CMS1 (Figura~\ref{fig:mail2}); en cada captura se ve el mensaje abierto en RoundCube en el buzón del destinatario, con remitente, asunto y cuerpo. Estas pruebas se ejecutaron con un navegador automatizado a través de un túnel SSH.
 \begin{figure}[H]\centering
 \includegraphics[width=.93\linewidth,height=.36\textheight,keepaspectratio,trim=0 570 550 0,clip]{10-revision/correo-02-recibido.png}
-\caption{RoundCube abierto con la cuenta CMS2: mensaje enviado desde CMS1, asunto único y contenido legible. La figura acredita recepción y lectura a través de IMAP, después de corregir el destino SMTP.}\label{fig:mail1}
+\caption[Mensaje de CMS1 recibido por CMS2]{Mensaje de CMS1 abierto en el buzón de CMS2, tras corregir el destino SMTP.}\label{fig:mail1}
 \end{figure}
 \begin{figure}[H]\centering
 \includegraphics[width=.93\linewidth,height=.36\textheight,keepaspectratio,trim=0 570 550 0,clip]{10-revision/correo-04-respuesta-recibida.png}
-\caption{RoundCube abierto con CMS1: respuesta enviada desde CMS2 y recibida con asunto relacionado. Completa el circuito de ida y vuelta; las transcripciones de ambas sesiones están en \evid{10-revision/solucion-correo-respuesta.txt}.}\label{fig:mail2}
+\caption[Respuesta de CMS2 recibida por CMS1]{Respuesta de CMS2 abierta en el buzón de CMS1: el envío funciona en ambos sentidos.}\label{fig:mail2}
 \end{figure}
 
+\paragraph{Resultado.} Correo interno operativo en ambos sentidos con Postfix, Dovecot y RoundCube. Queda fuera de este resultado el envío hacia dominios externos, que no probamos.
+
+%---------------------------------------------------------------------
 \subsection{Firewall y SELinux -- actividades 9 y 10}
-\begin{center}\small
-\begin{tabular}{@{}p{2.7cm}p{3.0cm}p{7.1cm}@{}}\toprule
-Puerto/protocolo & Servicio & Justificación \\\midrule
-22/TCP & SSH & Administración remota y respaldo.\\
-80/TCP & Apache & Sitios web, PowerAdmin y RoundCube según Host.\\
-53/TCP y UDP & PowerDNS & Consultas y respuestas DNS autoritativas.\\
-25/TCP & Postfix & Recepción SMTP y entrega local.\\
-993/TCP & Dovecot & Acceso IMAPS externo.\\
-2121/TCP & vsftpd & Canal de control FTP alternativo a 21.\\
-30000--30100 & vsftpd (TCP) & Transferencias en modo pasivo.\\
-9000/TCP & Chat & Programa cliente--servidor Python.\\
-\bottomrule\end{tabular}\end{center}
-La zona \texttt{public} conserva además el servicio auxiliar \texttt{dhcpv6-client} heredado para tráfico de cliente DHCPv6. No se expusieron MariaDB/3306 ni IMAP/143 por firewall; MariaDB además enlaza solo loopback. La Figura~\ref{fig:sec} comprueba nueve unidades activas, reglas de firewalld, sockets de FTP/chat/BD y \texttt{Enforcing}. El chequeo de booleanos muestra apagados los permisos FTP y HTTP generales; los módulos locales \texttt{roundcube\_http\_mail} y \texttt{ftpd\_httpd\_content} cubren las conexiones IMAP/SMTP y la escritura FTP requeridas. Las etiquetas persistentes de CMS se aplicaron con \texttt{semanage fcontext} y \texttt{restorecon}. Existen AVC históricos de otras peticiones HTTP; por ello no se afirma ausencia global de denegaciones, sino éxito de los flujos probados con Enforcing.
+\paragraph{Firewall: qué y por qué.} El firewall decide qué conexiones entrantes llegan a cada servicio. Dejamos abiertos solo los puertos que cada servicio necesita, y la Tabla~\ref{tab:puertos} explica la razón de cada uno. No abrimos MariaDB (3306), porque solo escucha en loopback, ni IMAP sin cifrar (143), porque RoundCube consulta a Dovecot desde el mismo VPS. Tampoco abrimos POP3 ni HTTPS, porque no están implementados. Las reglas se aplicaron tanto en runtime como de forma permanente.
 
-La tabla enumera las excepciones de entrada realmente necesarias para el alcance del taller. El servicio \texttt{http} representa 80/TCP y evitó conservar una regla explícita duplicada; \texttt{cockpit} se retiró de la zona pública. DNS requiere UDP para la consulta habitual y TCP para respuestas o clientes que lo soliciten. El puerto 25 recibe SMTP, 993 permite IMAPS externo y 9000 corresponde únicamente al programa Python. El rango pasivo de FTP no es un servicio administrativo adicional: transporta los datos de las sesiones iniciadas en 2121. Se compararon reglas efectivas y permanentes para que una recarga del firewall no cambiara el resultado. La conexión externa comprobó DNS por UDP y TCP, así como alcance de 25 y 993; las pruebas de aplicaciones demuestran que varios de esos puertos cumplen su función, no solo que están abiertos.
-
-SELinux se mantuvo en \texttt{Enforcing} durante el trabajo. Se habilitaron los booleanos específicos \texttt{httpd\_enable\_homedirs} para leer los sitios alojados bajo \ruta{/home}, \texttt{httpd\_can\_network\_connect\_db} para la base local y \texttt{ftpd\_use\_passive\_mode} para FTP. \texttt{httpd\_can\_network\_connect}, \texttt{ftpd\_full\_access} y \texttt{ftpd\_anon\_write} permanecieron apagados. Las rutas que los CMS deben modificar recibieron etiquetas de escritura específicas, mientras los demás archivos conservaron contextos de lectura; \texttt{matchpathcon -V} comparó las etiquetas efectivas con las reglas persistentes tras \texttt{restorecon}. El módulo \texttt{roundcube\_http\_mail} habilitó al proceso web solo los tipos de puerto necesarios para IMAP/SMTP, y el módulo FTP resolvió la escritura en el árbol web. La Figura~\ref{fig:sec} muestra los booleanos amplios apagados y ambos módulos presentes; las pruebas de correo y FTP son la verificación funcional de esas decisiones.
+\begin{table}[H]\centering\small
+\caption{Puertos publicados y su justificación.}\label{tab:puertos}
+\begin{tabular}{@{}p{2.7cm}p{2.6cm}p{7.5cm}@{}}\toprule
+Puerto / protocolo & Servicio & Justificación \\\midrule
+22/TCP & SSH & Administración remota. \\
+53/TCP y UDP & PowerDNS & Consultas DNS autoritativas (UDP el uso normal, TCP para respuestas grandes). \\
+80/TCP & Apache & Sitios web, PowerAdmin y RoundCube, distinguidos por \texttt{Host}. \\
+25/TCP & Postfix & Recepción de correo por SMTP. \\
+993/TCP & Dovecot & Acceso IMAP cifrado desde el exterior. \\
+2121/TCP & vsftpd & Canal de control FTP alternativo al 21, bloqueado en la red. \\
+30000--30100/TCP & vsftpd & Canal de datos del modo pasivo. \\
+9000/TCP & Chat & Aplicación cliente--servidor en Python. \\
+\bottomrule\end{tabular}
+\end{table}
 \begin{figure}[H]\centering
-\includegraphics[width=.96\linewidth,height=.40\textheight,keepaspectratio,trim=15 430 800 90,clip]{10-revision/solucion-seguridad.png}
-\caption{Estado real tras las correcciones: SELinux Enforcing, servicios activos, puertos autorizados, MariaDB en loopback y módulos locales presentes. Se leen junto con las pruebas de FTP y correo para acreditar operación, no solo configuración.}\label{fig:sec}
+\includegraphics[width=.96\linewidth,height=.12\textheight,keepaspectratio]{10-revision/solucion-seguridad-recorte.png}
+\caption[Puertos autorizados en firewalld]{Servicios y puertos permitidos en firewalld. La escucha local de MariaDB y los controles SELinux se registran por separado en las evidencias.}\label{fig:sec}
 \end{figure}
+La Figura~\ref{fig:sec} muestra la salida de firewalld con esos puertos.
 
+\paragraph{SELinux: cómo lo tratamos.} SELinux es una segunda capa de seguridad que limita lo que cada proceso puede hacer, aunque los permisos Unix se lo permitan. Nunca lo desactivamos: se mantuvo en \texttt{Enforcing} durante todo el taller. Cada vez que algo fue bloqueado, revisamos qué operación se denegaba y aplicamos la solución más estrecha posible:
+\begin{itemize}\setlength\itemsep{0pt}
+\item \textbf{Booleanos activados:} \texttt{httpd\_enable\_homedirs}, \texttt{httpd\_can\_network\_connect\_db} y \texttt{ftpd\_use\_passive\_mode}.
+\item \textbf{Booleanos que dejamos apagados:} \texttt{httpd\_can\_network\_connect}, \texttt{ftpd\_full\_access} y \texttt{ftpd\_anon\_write}, porque otorgarían permisos mucho más amplios de lo necesario.
+\item \textbf{Etiquetas de archivo y de puerto} específicas para las rutas modificables y los puertos de FTP.
+\item \textbf{Dos módulos locales acotados:} \texttt{ftpd\_httpd\_content} (para el error 553 de FTP) y \texttt{roundcube\_http\_mail} (para que RoundCube conecte a IMAP y SMTP).
+\end{itemize}
+Las pruebas de FTP y de correo se hicieron con \texttt{getenforce} devolviendo \texttt{Enforcing}, así que los flujos probados funcionan bajo la política activa. Esto no equivale a certificar que no exista ninguna otra denegación posible en rutas que no probamos.
+
+%---------------------------------------------------------------------
 \subsection{Aplicación de sockets -- actividad 11}
-El servidor Python 3 escucha en TCP/9000 mediante \texttt{chat-texto.service}, bajo la cuenta \texttt{tredes3}. El programa original necesitaba entrada interactiva; la unidad la proporciona con FIFO privado en \ruta{/run/chat-texto/chat.stdin}. Durante la revisión se adaptó \texttt{servidor.py} para liberar una sesión al desconectar y aceptar la siguiente sin reiniciar la unidad. Por ello la versión desplegada deriva del programa del taller, pero no es literalmente idéntica al archivo original; ambas versiones quedaron respaldadas. El cliente original, más \texttt{conectar.py} para indicar host y puerto, se entrega en \ruta{entrega/chat-texto/}.
+\paragraph{Qué hicimos.} Desplegamos el servidor de chat en Python 3, escuchando en TCP/9000, y lo ejecutamos como servicio systemd (\texttt{chat-texto.service}) bajo la cuenta \texttt{tredes3}. Usar systemd permite que el servidor siga disponible sin mantener una sesión SSH abierta.
 
-El transporte es TCP: el cliente establece una conexión a \texttt{200.13.5.39:9000}, envía texto y espera una respuesta del proceso servidor. La unidad systemd permite que el proceso siga disponible sin mantener abierta una sesión SSH de administración. El FIFO aporta la entrada que el programa interactivo esperaba recibir por consola; no convierte al chat en un servicio web ni altera el puerto del protocolo. La adaptación de \texttt{servidor.py} responde a una falla concreta: tras la primera desconexión el proceso continuaba activo, pero no liberaba correctamente la sesión para atender una nueva conexión. Un estado \texttt{active} de systemd o \texttt{LISTEN} de \texttt{ss} no habría detectado por sí solo ese problema.
+\paragraph{Adaptaciones y por qué.} El programa original esperaba entrada interactiva por consola. Para que funcionara como servicio, la unidad le entrega esa entrada mediante un FIFO privado (\ruta{/run/chat-texto/chat.stdin}). Además, al probarlo vimos que tras la primera desconexión el servidor no liberaba la sesión y no atendía a un segundo cliente, así que modificamos \texttt{servidor.py} para que libere la sesión y acepte la siguiente sin reiniciar el servicio. Por eso la versión desplegada deriva del programa del taller pero no es idéntica al archivo original; guardamos respaldo de ambas. El cliente original, más un \texttt{conectar.py} para indicar servidor y puerto, se entrega en \ruta{entrega/chat-texto/}, junto con las instrucciones de ejecución.
 
-La Figura~\ref{fig:chat} contiene la salida del cliente ejecutado en el equipo local: dos conexiones consecutivas al VPS, texto enviado y respuestas correspondientes. El journal de la unidad registra las mismas dos sesiones. El puerto fue comprobado en LISTEN y permitido en firewalld.
-La segunda conversación se ejecutó después de cerrar la primera y sin reiniciar \texttt{chat-texto.service}. Por eso la figura comprueba tanto la comunicación de ida y vuelta como la capacidad de aceptar otra sesión. La salida diferencia el texto enviado por el cliente de la respuesta rotulada \texttt{Servidor}; la coincidencia de los identificadores de sesión permite asociar cada respuesta a su conexión. El archivo entregable incluye instrucciones de conexión para repetir la prueba desde otra máquina.
+\paragraph{Cómo lo probamos.} El protocolo es TCP: el cliente se conecta a \texttt{200.13.5.39:9000}, envía texto y recibe la respuesta del servidor (Figura~\ref{fig:ciclo-chat}). Confirmamos que el puerto estaba en \texttt{LISTEN}, que firewalld lo permitía y ejecutamos el cliente desde el equipo local. La Figura~\ref{fig:chat} muestra dos conversaciones consecutivas: la segunda se hizo después de cerrar la primera y sin reiniciar el servicio, lo que demuestra tanto la comunicación de ida y vuelta como la corrección del problema anterior. La salida distingue el texto enviado de la respuesta rotulada \texttt{Servidor}, y los números de sesión permiten asociar cada respuesta a su conexión. El journal de la unidad registra las mismas dos sesiones.
 \begin{figure}[H]\centering
-\includegraphics[width=.95\linewidth,height=.34\textheight,keepaspectratio,trim=15 750 1100 90,clip]{10-revision/solucion-chat.png}
-\caption{Cliente Python desde el equipo local: dos intercambios consecutivos con el servidor TCP/9000. Los mensajes y respuestas coinciden por número de sesión y no se reinició el servicio entre ellas.}\label{fig:chat}
+\includegraphics[width=.95\linewidth,height=.34\textheight,keepaspectratio]{10-revision/solucion-chat-recorte.png}
+\caption[Dos sesiones de chat TCP]{Cliente Python desde el equipo local: dos intercambios consecutivos con el servidor TCP/9000. Mensajes y respuestas coinciden por número de sesión y el servicio no se reinició entre ellas.}\label{fig:chat}
+\end{figure}
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[>=Latex,scale=.9,transform shape,node distance=9mm,every node/.style={font=\small}]
+\node[draw,rounded corners,fill=blue!8,text width=2.5cm,align=center] (connect) {Cliente\\conecta a TCP/9000};
+\node[draw,rounded corners,fill=green!10,right=of connect,text width=2.8cm,align=center] (accept) {Servidor\\acepta sesión};
+\node[draw,rounded corners,fill=blue!8,right=of accept,text width=2.6cm,align=center] (send) {Cliente envía\\mensaje};
+\node[draw,rounded corners,fill=green!10,right=of send,text width=2.6cm,align=center] (reply) {Servidor responde\\por la conexión};
+\node[draw,rounded corners,fill=gray!10,right=of reply,text width=2.4cm,align=center] (close) {Cliente cierra\\servidor vuelve a aceptar};
+\draw[->] (connect)--(accept);\draw[->] (accept)--(send);\draw[->] (send)--(reply);\draw[->] (reply)--(close);
+\draw[->,dashed] (close.south) -- ++(0,-7mm) -| node[pos=.25,below]{\scriptsize segunda conexión}(connect.south);
+\end{tikzpicture}
+\caption[Ciclo de conexión del chat]{Ciclo de conexión: dos intercambios consecutivos y aceptación de una nueva conexión sin reiniciar la unidad.}\label{fig:ciclo-chat}
 \end{figure}
 
+\paragraph{Resultado.} El servidor atiende varias sesiones consecutivas desde un cliente externo, con el puerto abierto en el firewall y ejecución persistente.
+
+%=====================================================================
 \section{Verificación integrada -- actividad 12}
-La tabla combina la ronda funcional del 26 de septiembre por la noche (27 en el VPS, configurado en Europe/Madrid) con el lote DNS/PowerAdmin repetido el 28 de septiembre desde Chile. ``Correcto'' se reserva para el alcance observado en cada fila; no significa que todas las pruebas se hayan repetido el mismo día. Las capturas y transcripciones de \evid{10-revision/} y \evid{12-auditoria-lote1-dns-poweradmin/} permiten seguir la secuencia.
+La Tabla~\ref{tab:integrada} reúne el resultado de cada prueba con su evidencia. Un detalle de honestidad sobre las fechas: combina la ronda funcional del 26 de septiembre por la noche (27 en el VPS, que usa la zona horaria Europe/Madrid) con el lote de DNS y PowerAdmin repetido el 28 de septiembre desde Chile. ``Correcto'' se refiere al alcance observado en cada fila; no significa que todo se repitiera el mismo día.
+
 \begin{longtable}{@{}p{2.2cm}p{6.2cm}p{1.5cm}p{3.6cm}@{}}
-\caption{Resultados integrados observados.}\label{tab:integrada}\\
-\toprule Área & Prueba y resultado obtenido & Estado & Figura / archivo \\\midrule\endfirsthead
-\toprule Área & Prueba y resultado obtenido & Estado & Figura / archivo \\\midrule\endhead
+\caption{Resultados de la verificación integrada.}\label{tab:integrada}\\
+\toprule Área & Prueba y resultado obtenido & Estado & Evidencia \\\midrule\endfirsthead
+\toprule Área & Prueba y resultado obtenido & Estado & Evidencia \\\midrule\endhead
 VPS & AlmaLinux 9.8, IP 200.13.5.39, línea base previa y SELinux Enforcing. & Correcto & Figuras~\ref{fig:base}, \ref{fig:entorno} \\
-Usuarios & Tres cuentas y tres \texttt{public\_html} individuales, modo 755. & Correcto & Figura~\ref{fig:webconf}; 02-usuarios \\
-DNS/BD & A raíz y seis nombres; MX10; NS/SOA; UDP/TCP autoritativos; zona de 11 registros; BD solo loopback. & Correcto & Figuras~\ref{fig:dns}, \ref{fig:dns-vps}; lote 12 \\
-PowerAdmin & Cuenta temporal autenticada; TXT creado y servido por DNS; borrado y zona final de 11 registros. & Correcto & Figuras~\ref{fig:power-txt}, \ref{fig:power}; lote 12 \\
-Web/CMS & HTTP200 y contenido propio en WordPress, Joomla y Grav. & Correcto & Figuras~\ref{fig:wp}--\ref{fig:grav} \\
-FTP & Tres usuarios: login, modificación, HTTP idéntico, jaula; anónimo 530. & Correcto & Figura~\ref{fig:ftp} \\
-Correo & CMS1 envió; CMS2 leyó y respondió; CMS1 leyó respuesta. & Correcto & Figuras~\ref{fig:mail1}, \ref{fig:mail2} \\
-Firewall & Reglas runtime y permanentes; puertos de DNS y aplicaciones; BD local. & Correcto & Figuras~\ref{fig:dns-vps}, \ref{fig:sec} \\
-SELinux & Enforcing; contextos y módulos específicos; flujos FTP/correo funcionales. & Correcto & Figuras~\ref{fig:ftp}, \ref{fig:mail1}, \ref{fig:sec} \\
-Sockets & Dos conversaciones desde cliente local sin reiniciar servidor. & Correcto & Figura~\ref{fig:chat} \\
+Usuarios & Tres cuentas y tres \texttt{public\_html} individuales, modo 755. & Correcto & Figura~\ref{fig:webconf} \\
+DNS / BD & A de la raíz y seis nombres; MX 10; NS/SOA; UDP y TCP autoritativos; zona de 11 registros; BD solo en loopback. & Correcto & Figuras~\ref{fig:dns}, \ref{fig:dns-vps} \\
+PowerAdmin & Alta de un TXT temporal, consulta por DNS, borrado y zona final de 11 registros. & Correcto & Figuras~\ref{fig:power-txt}, \ref{fig:power} \\
+Web / CMS & HTTP 200 y contenido propio en WordPress, Joomla y Grav. & Correcto & Figuras~\ref{fig:wp}--\ref{fig:grav} \\
+FTP & Tres usuarios: login, modificación, HTTP idéntico, jaula; anónimo rechazado (530). & Correcto & Figura~\ref{fig:ftp} \\
+Correo & CMS1 envió; CMS2 leyó y respondió; CMS1 leyó la respuesta. & Correcto & Figuras~\ref{fig:mail1}, \ref{fig:mail2} \\
+Firewall & Reglas runtime y permanentes; puertos de cada servicio; BD solo local. & Correcto & Figuras~\ref{fig:dns-vps}, \ref{fig:sec} \\
+SELinux & \texttt{Enforcing}; contextos y módulos específicos; flujos FTP y correo funcionales. & Correcto & Figuras~\ref{fig:ftp}, \ref{fig:mail1}, \ref{fig:sec} \\
+Sockets & Dos conversaciones desde un cliente local sin reiniciar el servidor. & Correcto & Figura~\ref{fig:chat} \\
 \bottomrule
 \end{longtable}
 
-\section{Análisis de resultados}
-La prueba integrada permitió separar fallas de configuración de fallas de operación. Por ejemplo, la zona PowerDNS ya era válida cuando todavía faltaba el A de la raíz: el chequeo de sintaxis aceptaba los registros existentes, pero la consulta al nombre principal no entregaba la dirección prevista. Asimismo, el formulario de PowerAdmin cargaba antes de que comprobáramos una edición real. La secuencia de TXT del lote final enlazó la acción en la interfaz con un dato servido por DNS y reveló además el efecto de la caché sobre las consultas inmediatamente posteriores.
-
-En web y FTP, los tres nombres llegan a la misma IP, pero Apache usa el encabezado Host para escoger cada sitio y vsftpd usa la identidad local para fijar la jaula. La comparación de bytes después de reemplazar un archivo por FTP mostró que cada transferencia terminó en el árbol publicado por su VirtualHost. El rechazo de rutas ajenas y del usuario anónimo comprobó los límites ensayados. No se deduce de estas pruebas que cualquier ruta imaginable esté aislada; sí queda demostrada la separación entre las tres cuentas en los casos registrados.
-
-El correo y el chat exigieron observar una segunda acción: recibir y responder un mensaje, o aceptar otra conexión tras cerrar la primera. En ambos casos, mirar solo el estado de la unidad habría ocultado el fallo inicial. Las capturas de RoundCube son de un navegador real manejado mediante automatización, y la prueba FTP utilizó un cliente automatizado; describimos el resultado visible sin atribuir una operación manual que no ocurrió. Mantuvimos SELinux en Enforcing durante las pruebas funcionales. Esto confirma que las rutas utilizadas funcionan con la política aplicada, aunque no sustituye una revisión exhaustiva de todos los posibles AVC.
-
-\section{Dificultades, decisiones y límites}
-El Cuadro~\ref{tab:dificultades} reúne fallas que afectaron una prueba concreta. Conservamos síntoma y herramienta de diagnóstico para que el resultado posterior se pueda relacionar con el cambio, sin repetir todo el procedimiento de FTP o correo.
+%=====================================================================
+\section{Dificultades encontradas y cómo las resolvimos}
+La Tabla~\ref{tab:dificultades} reúne los problemas que afectaron una prueba concreta. Para cada uno indicamos cómo se manifestó, cómo lo investigamos, cuál era la causa y qué resultado tuvo la solución.
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{3.3cm}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{5.0cm}@{}}
-\caption{Dificultades observadas: síntoma, diagnóstico, causa, solución y resultado.}\label{tab:dificultades}\\
-\toprule Síntoma & Diagnóstico: herramientas y causa & Solución y resultado comprobado \\\midrule\endfirsthead
-\toprule Síntoma & Diagnóstico: herramientas y causa & Solución y resultado comprobado \\\midrule\endhead
-PowerDNS no iniciaba con la configuración prevista. & \texttt{systemctl}, permisos del archivo y \texttt{pdnsutil}: el proceso no podía leer su configuración. & Ajustamos grupo a \texttt{pdns} y modo 640. El servicio quedó activo; \texttt{pdnsutil} validó la zona y \texttt{dig} recibió respuestas. \\
-Joomla devolvía HTTP 500. & Log de PHP, memoria y contextos SELinux: memoria insuficiente y caché sin etiqueta de escritura adecuada. & Subimos el límite a 512 MiB y etiquetamos solo las rutas necesarias. Administración y portada volvieron a HTTP 200; el artículo quedó público. \\
-PowerAdmin mostraba error tras instalar. & El navegador mostraba el bloqueo y la revisión de archivos encontró el directorio instalador aún presente. & Movimos el instalador al respaldo. Una sesión temporal autenticada permitió crear, consultar y retirar un TXT. \\
-FTP aceptaba login, pero STOR devolvía 553. & \texttt{stat}, \texttt{ls -Z} y \texttt{sesearch}: DAC permitía escribir, pero \texttt{ftpd\_t} no podía modificar el tipo web. & Instalamos un módulo local acotado. Las tres cuentas realizaron dos escrituras 226 y HTTP mostró la nueva versión con Enforcing. \\
-RoundCube permitía entrar, pero no enviar. & Error SMTP, log y configuración: la aplicación intentaba conectar a 587, mientras Postfix escuchaba en 25. & Fijamos \texttt{smtp\_host} en \texttt{127.0.0.1:25}. CMS2 abrió el mensaje enviado por CMS1; CMS1 abrió la respuesta. \\
-Chat atendía una sesión y luego quedaba ocupado. & Segundo cliente y journal de \texttt{chat-texto}: el servidor no liberaba la conexión anterior. & Adaptamos el ciclo de aceptación. Dos conversaciones consecutivas recibieron respuesta sin reiniciar la unidad. \\
-TXT de prueba parecía ausente o persistente tras editar. & PowerAdmin, SQL y \texttt{dig}: la caché de PowerDNS conservaba la respuesta anterior. & Purgamos solo ese nombre con \texttt{pdns\_control}. El alta y la baja se observaron por DNS; la zona final tiene once registros. \\
+\caption{Dificultades: síntoma, diagnóstico, solución y resultado.}\label{tab:dificultades}\\
+\toprule Síntoma & Diagnóstico (herramientas y causa) & Solución y resultado \\\midrule\endfirsthead
+\toprule Síntoma & Diagnóstico (herramientas y causa) & Solución y resultado \\\midrule\endhead
+PowerDNS no iniciaba. & \texttt{systemctl}, permisos del archivo y \texttt{pdnsutil}: el proceso no podía leer su configuración. & Grupo \texttt{pdns} y modo 640 en el archivo. El servicio inició; \texttt{pdnsutil} validó la zona y \texttt{dig} recibió respuestas. \\
+Falta el A de la raíz aunque la zona ``validaba''. & \texttt{pdnsutil} y \texttt{dig}: el chequeo revisa sintaxis, no que falte un registro. & Agregamos el A de la raíz; zona final de 11 registros sin errores. \\
+Joomla devolvía HTTP 500. & Log de PHP, memoria y contextos SELinux: memoria insuficiente y caché sin etiqueta de escritura. & Límite de 512 MiB y etiqueta solo en las rutas necesarias. Portada y administración volvieron a HTTP 200. \\
+PowerAdmin mostraba error tras instalar. & Navegador y revisión de archivos: el directorio del instalador seguía presente. & Lo movimos al respaldo; luego se pudo crear, consultar y borrar un TXT. \\
+TXT de prueba parecía ausente o persistente. & PowerAdmin, SQL y \texttt{dig}: la caché de PowerDNS conservaba la respuesta anterior. & Purgamos solo ese nombre con \texttt{pdns\_control}; el alta y la baja se vieron por DNS. \\
+FTP: login correcto pero STOR devolvía 553. & \texttt{stat}, \texttt{ls -Z} y \texttt{sesearch}: los permisos Unix permitían escribir, pero SELinux impedía a \texttt{ftpd\_t} modificar el tipo web. & Módulo local acotado. Las tres cuentas hicieron dos escrituras (226) y HTTP mostró la nueva versión, con SELinux en Enforcing. \\
+RoundCube entraba pero no enviaba. & Registro de RoundCube: intentaba el puerto 587, pero Postfix escuchaba en el 25. & \texttt{smtp\_host} fijado en \texttt{127.0.0.1:25}. CMS2 abrió el mensaje de CMS1 y CMS1 la respuesta. \\
+Chat atendía una sesión y luego quedaba ocupado. & Segundo cliente y journal de \texttt{chat-texto}: el servidor no liberaba la conexión anterior. & Adaptamos el ciclo de aceptación. Dos conversaciones seguidas obtuvieron respuesta sin reiniciar. \\
 \bottomrule
 \end{longtable}
 
-Respaldamos la configuración y la base antes de editar; las copias sensibles quedaron fuera de Git. El certificado de correo autofirmado y la publicación HTTP/FTP sin cifrado limitan el uso a este entorno de taller. La cuenta \texttt{admin@} prevista como buzón adicional no se demostró ni forma parte del flujo mínimo confirmado en la pauta. El video mudo y el guion se entregan por separado, con espacio para añadir las voces del grupo.
+\section{Análisis de resultados y limitaciones}
+\paragraph{Qué nos enseñó el trabajo.} Casi todos los problemas se resolvieron cuando dejamos de mirar solo el estado del servicio y probamos el recorrido completo. La zona de PowerDNS estaba ``válida'' aun faltando el A de la raíz; el chat estaba ``activo'' pero rechazaba una segunda conexión; RoundCube cargaba pero enviaba a un puerto donde nadie escuchaba. En los tres casos, mirar solo el estado habría ocultado la falla. También aprendimos que, en un sistema con SELinux, los permisos Unix por sí solos no bastan: la falla de FTP (error 553) fue la mejor muestra de ello.
 
-\section{Procedimiento técnico de comprobación}
-Esta sección reúne los controles más útiles para repetir la evaluación sin convertir cada comando en una figura. Las salidas citadas corresponden a las evidencias del grupo; los archivos de configuración con contraseñas se consultaron sin volcar secretos al informe. Las pruebas que alteraron contenido se ejecutaron sobre archivos o registros temporales y se limpiaron al finalizar.
+\paragraph{Aislamiento y alcance de las pruebas.} Los tres sitios comparten IP, pero Apache separa los sitios por el encabezado \texttt{Host} y vsftpd separa a los usuarios por su identidad local y su jaula. La comparación de contenido tras subir un archivo por FTP mostró que cada transferencia terminó en el sitio de su propio VirtualHost, y el rechazo de rutas ajenas y del usuario anónimo comprobó los límites que ensayamos. No afirmamos que cualquier ruta imaginable esté aislada, sino que la separación entre las tres cuentas quedó demostrada en los casos registrados. Las capturas de RoundCube corresponden a un navegador real controlado por automatización y la prueba FTP usó un cliente automatizado; lo indicamos para no atribuirlas a una operación manual.
 
-\subsection{Identidad, permisos y publicación web}
-La secuencia comienza por la identidad de las tres cuentas. \texttt{getent passwd} permite confirmar que el sistema las reconoce y muestra UID, GID y HOME; \texttt{stat} distingue propietario y modo del HOME frente a \texttt{public\_html}. Esa comparación es necesaria porque la jaula FTP usa el HOME como raíz no escribible, pero el usuario sí debe poder modificar el árbol web. Luego \texttt{httpd -S} permite comprobar que Apache asocia los nombres a los VirtualHosts esperados. Una solicitud HTTP completa el recorrido y evita concluir que un VirtualHost funciona solo por aparecer en la configuración.
-
-\begin{longtable}{@{}p{4.2cm}p{4.4cm}p{4.3cm}@{}}
-\caption{Controles representativos de cuentas y publicación.}\label{tab:controles-web}\\
-\toprule Control & Resultado registrado & Alcance de la conclusión \\\midrule\endfirsthead
-\toprule Control & Resultado registrado & Alcance de la conclusión \\\midrule\endhead
-\texttt{getent passwd} para cms1--cms3 & UID/GID 1001--1003; HOME individual & Las tres identidades locales existen y apuntan a rutas distintas. \\
-\texttt{stat -c '\%U:\%G \%a \%n'} sobre HOME y \texttt{public\_html} & HOME \texttt{root:root 755}; directorio web de su CMS, modo 755 & Raíz del chroot no escribible; destino web controlado por cada titular. \\
-\texttt{apachectl configtest} y \texttt{httpd -S} & Sintaxis correcta; cinco VirtualHosts nombrados & Apache acepta la configuración y asigna nombres a archivos de sitio. \\
-\texttt{curl --resolve} con el Host de cada CMS & Raíces de web1, web2 y web3 con HTTP 200 & Cada Host llega a la aplicación prevista independientemente de DNS público. \\
-Consultas SQL y lectura de Markdown & Artículo Joomla en \texttt{g3j\_content}; página Grav en \texttt{default.md} & El contenido propio tiene una ubicación de persistencia identificable. \\
-\bottomrule
-\end{longtable}
-
-La Figura~\ref{fig:webconf} concentra los controles de VirtualHosts, propietarios y artículo Joomla. Las Figuras~\ref{fig:wp}--\ref{fig:grav} muestran el resultado que recibe un visitante. Entre ambas clases de evidencia se evita una ambigüedad frecuente: un HTTP 200 podría corresponder a la página por defecto de Apache, a una pantalla de instalación o a un sitio distinto si no se revisan Host, contenido y ruta.
-
-\subsection{Persistencia, zona autoritativa y administración}
-El DNS se verificó en dos extremos. En el VPS, el backend y la zona se revisaron mediante MariaDB y \texttt{pdnsutil}; en el cliente externo se consultó por UDP/TCP directamente a la IP asignada. El criterio de éxito fue obtener la dirección esperada para cada nombre operativo y el MX hacia \texttt{mail}, no solo recibir \texttt{NOERROR}. Se añadió una consulta mediante 1.1.1.1 para comprobar que la resolución pública observada también alcanzaba la zona. La capacidad de administración se ensayó creando temporalmente un TXT en PowerAdmin y consultándolo con \texttt{dig}; después se eliminó para que la marca de prueba no persistiera en la zona entregada.
-
-\begin{longtable}{@{}p{4.3cm}p{4.1cm}p{4.5cm}@{}}
-\caption{Cadena de prueba del servicio DNS.}\label{tab:controles-dns}\\
-\toprule Punto de control & Observación & Interpretación \\\midrule\endfirsthead
-\toprule Punto de control & Observación & Interpretación \\\midrule\endhead
-\texttt{ss} para 3306 y 53 & MariaDB en \texttt{127.0.0.1:3306}; DNS en 53/TCP y UDP & La base queda local; el servicio autoritativo recibe consultas. \\
-Backend \texttt{gmysql} y privilegios SQL & \texttt{pdns\_redes3}; cuenta \texttt{dominio\_pdns} limitada a esa base & PowerDNS utiliza su propia persistencia sin privilegios globales. \\
-\texttt{pdnsutil zone check} & Once registros, cero errores y cero avisos & La estructura final de la zona es válida para PowerDNS. \\
-\texttt{dig @200.13.5.39} para A/MX & Raíz y nombres de servicio a \texttt{200.13.5.39}; MX 10 a \texttt{mail} & El servidor autoritativo devuelve los destinos configurados desde el cliente. \\
-\texttt{dig @1.1.1.1} para el A raíz & \texttt{200.13.5.39} & Un resolvedor público obtuvo la dirección final durante la prueba. \\
-TXT temporal desde PowerAdmin & Valor editado visible por DNS; registro luego retirado & La edición web llega a la zona servida y no queda como dato final. \\
-\bottomrule
-\end{longtable}
-
-La consulta externa y el chequeo de zona son complementarios. El primero puede fallar por firewall o delegación aun con los registros almacenados correctamente; el segundo puede aprobar una zona inaccesible desde Internet. El resultado público de la raíz tampoco demuestra por sí solo que todos los VirtualHosts sean correctos: esa parte se verifica en la tabla de publicación web y sus capturas.
-
-\subsection{Transferencia, correo y sockets}
-Para FTP, el protocolo devuelve códigos distintos según la fase. El 226 tras cada \texttt{STOR} confirma transferencia completada; la comparación del contenido obtenido por HTTP comprueba que el archivo quedó en el sitio correspondiente y conserva los bytes de la última versión. Los códigos 550 y 530 documentan, respectivamente, rutas ajenas inaccesibles y rechazo anónimo. Para correo, la evidencia se compone de mensaje enviado, mensaje abierto por el destinatario y respuesta abierta por el remitente; una pantalla de redacción no acredita la entrega. En el chat se comprobó una segunda conexión después del cierre de la primera.
-
-\begin{longtable}{@{}p{2.2cm}p{4.3cm}p{4.1cm}p{2.3cm}@{}}
-\caption{Pruebas funcionales que exceden el estado ``activo'' de las unidades.}\label{tab:flujos}\\
-\toprule Flujo & Acción desde el cliente & Resultado observado & Evidencia \\\midrule\endfirsthead
-\toprule Flujo & Acción desde el cliente & Resultado observado & Evidencia \\\midrule\endhead
-FTP cms1--cms3 & Autenticar, subir versión 1 y reemplazar por versión 2 & Dos respuestas 226 por cuenta; HTTP 200 y bytes de versión 2 iguales & Figura~\ref{fig:ftp} \\
-FTP negativo & Cambiar a \ruta{/etc} y HOME ajeno; intentar usuario anónimo & 550 para rutas prohibidas; 530 para anónimo & Figura~\ref{fig:ftp} \\
-Correo ida & CMS1 envía desde RoundCube; CMS2 abre su INBOX & Asunto, remitente y cuerpo de CMS1 visibles & Figura~\ref{fig:mail1} \\
-Correo vuelta & CMS2 responde; CMS1 abre su INBOX & Respuesta de CMS2 visible en la cuenta CMS1 & Figura~\ref{fig:mail2} \\
-Chat TCP & Cliente local conecta, envía texto, cierra y vuelve a conectar & Dos respuestas correspondientes sin reiniciar la unidad & Figura~\ref{fig:chat} \\
-\bottomrule
-\end{longtable}
-
-Los flujos se probaron mientras \texttt{getenforce} devolvía \texttt{Enforcing}. Esta condición es relevante porque FTP había fallado aun con permisos Unix correctos y RoundCube había necesitado una política local para conectar con correo. El resultado funcional posterior confirma que las correcciones permitieron las operaciones ensayadas bajo la política activa; no equivale a certificar ausencia de todas las denegaciones posibles para rutas o clientes no probados.
-
-\subsection{Parámetros decisivos de servicio y motivo de elección}
-Se seleccionan aquí los parámetros que cambiaban el comportamiento observable. No se reproducen archivos completos porque contienen otros valores de instalación, algunos sensibles, y porque la evaluación técnica depende de relacionar cada ajuste con una prueba. La columna final identifica el fallo que se evita o la propiedad que se comprueba. Los valores proceden de la configuración y validación registradas en las evidencias por actividad.
-
-\begin{longtable}{@{}p{2.3cm}p{5.2cm}p{5.3cm}@{}}
-\caption{Configuración que determina el comportamiento de los servicios.}\label{tab:parametros}\\
-\toprule Componente & Parámetro o ubicación & Motivo técnico y verificación \\\midrule\endfirsthead
-\toprule Componente & Parámetro o ubicación & Motivo técnico y verificación \\\midrule\endhead
-MariaDB & \texttt{bind-address=127.0.0.1}; bases \texttt{pdns\_redes3}, \texttt{web1\_db}, \texttt{web2\_db} & La BD atiende procesos locales y no expone 3306 en la interfaz pública; \texttt{ss} confirma la escucha en loopback. \\
-PowerDNS & \texttt{launch=gmysql}; \texttt{gmysql-host=127.0.0.1}; base \texttt{pdns\_redes3} & El servidor autoritativo lee la zona almacenada en MariaDB; \texttt{pdnsutil} y \texttt{dig} contrastan almacenamiento y respuesta. \\
-Apache & VirtualHosts de \texttt{cms-sites.conf} con DocumentRoot de cada \texttt{public\_html} & El Host selecciona un sitio distinto en la misma IP; \texttt{httpd -S} y las tres portadas verifican el enrutamiento. \\
-PHP-FPM & \texttt{memory\_limit=512M}; pool con máximo seis procesos & Corrige el agotamiento observado en Joomla sin elevar permisos generales; la portada y administración vuelven a HTTP 200. \\
-vsftpd & \texttt{listen\_port=2121}; \texttt{pasv\_min\_port=30000}; \texttt{pasv\_max\_port=30100} & Usa control fuera de 21 y canal de datos pasivo alcanzable; tres cuentas completan STOR con 226. \\
-vsftpd & \texttt{anonymous\_enable=NO}; \texttt{chroot\_local\_user=YES}; \texttt{local\_root=/home/\$USER} & Restringe identidades y ruta visible; anónimo devuelve 530 y rutas ajenas 550. \\
-Postfix & Dominio local en \texttt{mydestination}; buzón \texttt{Maildir/} & Entrega a cuentas Unix existentes; las dos INBOX contienen los mensajes enviados. \\
-RoundCube & \texttt{smtp\_host=127.0.0.1:25} & Utiliza la opción leída por la versión instalada y el puerto donde escucha Postfix; desaparece el rechazo de conexión en el flujo probado. \\
-Chat & Unidad \texttt{chat-texto.service}; FIFO \ruta{/run/chat-texto/chat.stdin}; TCP/9000 & Mantiene el servidor disponible fuera de SSH; el cliente recibe respuestas en dos sesiones consecutivas. \\
-\bottomrule
-\end{longtable}
-
-En varios componentes una decisión depende de otra. El FTP pasivo exige tanto puertos abiertos en firewalld como etiquetas SELinux de puerto y permisos de escritura en el árbol web. El correo requiere MX y A correctos para su nombre, Postfix para la entrega, Dovecot para lectura y una configuración SMTP de RoundCube que apunte al puerto realmente disponible. Los CMS requieren resolución de nombres, VirtualHosts, PHP-FPM y acceso a su persistencia; sus capturas de navegador muestran el resultado final de esa cadena. Esta interdependencia explica la secuencia de instalación y la utilidad de probar de nuevo todos los servicios después de corregir un fallo compartido.
-
-\subsection{Control de exposición y permisos}
-La política de acceso se evaluó por capas. El primer límite es la interfaz de escucha: MariaDB solo atiende loopback. El segundo es firewalld, que publica los puertos solicitados y conserva SSH para administración. El tercero son las identidades y permisos del sistema: cada CMS tiene usuario, HOME y árbol web propios, y FTP solo acepta las cuentas autorizadas. El cuarto es SELinux, que controla acciones de los procesos aun si la propiedad Unix permite acceder a un archivo. Los módulos locales se aplicaron tras revisar la operación denegada, en vez de otorgar conectividad o escritura generales a los demonios.
-
-Para el árbol web, \texttt{httpd\_sys\_content\_t} representa contenido servido que Apache puede leer; \texttt{httpd\_sys\_rw\_content\_t} se reservó para rutas donde la aplicación necesita escritura. El caso de WordPress uploads se delimitó además con una ACL para \texttt{apache}, y la prueba de creación y borrado desde PHP verificó que el proceso puede trabajar en esa carpeta. vsftpd necesitaba escribir sobre contenido web en nombre del propietario FTP; por eso se añadió una regla local para \texttt{ftpd\_t} y el tipo requerido. Mantener \texttt{ftpd\_full\_access=off} conserva un límite más estrecho que permitir al demonio acceder sin esa distinción de tipo. La prueba negativa de acceso a HOME ajeno permite comprobar que, pese al módulo, la jaula y el DAC siguen siendo efectivos en los casos ensayados.
-
-Para RoundCube, el proceso web necesitaba conectar a IMAP y SMTP locales. El módulo \texttt{roundcube\_http\_mail} habilitó esos tipos de puerto sin activar \texttt{httpd\_can\_network\_connect}, que concedería conectividad de red más amplia. Se mantuvo \texttt{Enforcing} y se contrastó el efecto con inicio de sesión IMAP y envío/recepción de mensajes. Las reglas persistentes de contexto se verificaron con \texttt{matchpathcon -V} después de \texttt{restorecon}; de esta forma una relabelización no depende solo de una etiqueta temporal aplicada manualmente.
-
-El resultado de seguridad tiene límites explícitos. La prueba de firewall identifica los puertos autorizados y los servicios alcanzados en la fecha de evaluación; no equivale a una auditoría de todos los paquetes o configuraciones de TLS. Las capturas de correo demuestran entrega y lectura, no confidencialidad del webmail publicado por HTTP. Las cuentas FTP transfieren datos sin cifrado. Para un servicio fuera del laboratorio habría que cambiar esos transportes y sustituir el certificado autofirmado por uno confiable, pero esos cambios no se atribuyen al VPS evaluado.
+\paragraph{Limitaciones del despliegue.}
+\begin{itemize}\setlength\itemsep{0pt}
+\item \textbf{Sin cifrado en web y FTP:} los sitios y el webmail funcionan por HTTP y el FTP transmite sin cifrar. Es aceptable en el entorno del taller; en producción habría que usar HTTPS y FTPS o SFTP.
+\item \textbf{Certificado de correo autofirmado:} no es de confianza pública.
+\item \textbf{POP3 no implementado:} solo IMAP e IMAPS.
+\item \textbf{Cuenta \texttt{admin@}:} estaba prevista como buzón adicional y no la comprobamos; no forma parte del flujo mínimo confirmado.
+\end{itemize}
+Respaldamos la configuración y la base antes de editar, y las copias con datos sensibles quedaron fuera del repositorio. El video (mudo, con su guion) se entrega por separado.
 
 \section{Conclusiones}
-Comprobamos la zona DNS desde fuera del VPS, incluida la raíz, MX, delegación y respuesta por UDP y TCP. PowerAdmin permitió editar un TXT y devolver la zona a once registros. Las portadas de WordPress, Joomla y Grav muestran contenido propio; las tres cuentas FTP escribieron dentro de sus jaulas; RoundCube entregó un mensaje y su respuesta; y el chat atendió dos sesiones consecutivas. La tabla integrada indica la prueba y su evidencia para cada actividad.
+Logramos dejar en el VPS una infraestructura funcional para Fauna Araucanía: una zona DNS autoritativa verificada desde fuera, administrable con PowerAdmin; tres sitios con tres CMS distintos y contenido propio; FTP en puerto alternativo con usuarios aislados; correo que se envía y se recibe en ambos sentidos; y un servidor de sockets que atiende sesiones consecutivas. Todo esto se probó con SELinux en \texttt{Enforcing} y con el firewall abierto solo en los puertos necesarios.
 
-Las fallas iniciales nos obligaron a mirar la operación completa. Un proceso activo no garantizaba que el cliente pudiera escribir por FTP, y el acceso a RoundCube no garantizaba envío. Después de corregir cada causa repetimos el flujo afectado con SELinux Enforcing. El resultado alcanza el escenario del taller; para un servicio público de uso continuo quedan por resolver el cifrado del acceso web y FTP y la confianza del certificado de correo. Los archivos de video y narración acompañan ambos informes.
+Los errores iniciales nos obligaron a entender cómo se conectan los servicios (DNS, Apache, permisos, SELinux, firewall y aplicaciones), y esa comprensión fue tan valiosa como la instalación en sí. Para un servicio público de uso continuo, lo primero sería cifrar el acceso web y FTP y reemplazar el certificado de correo por uno confiable.
 
-\section{Referencias y anexos}
+Repositorio del proyecto: \url{https://github.com/Luchosqi/taller-redes-grupo-3}.
+
+\section{Referencias y extractos de evidencia}
+\subsection{Referencias}
 \begin{enumerate}\setlength\itemsep{0pt}
-\item Requisitos del Taller de Redes, actividades 1--12 y criterios confirmados por el enunciado del curso; matriz de trabajo del grupo en \ruta{REVISION_PAUTA_CAMPUS.md}. El archivo \texttt{gio.txt} no estaba disponible en este repositorio al cerrar el informe.
+\item Enunciado del Taller de Redes y actividades 1--12 entregados por el curso.
 \item PowerDNS, \emph{Generic SQL Backends} y \emph{pdnsutil}: \url{https://doc.powerdns.com/authoritative/backends/generic-sql.html} y \url{https://doc.powerdns.com/authoritative/manpages/pdnsutil.1.html}. Consultados el 28-09-2026.
 \item Red Hat, \emph{Using SELinux} y \emph{Configuring firewalls and packet filters} (RHEL 9): \url{https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/using_selinux/} y \url{https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/configuring_firewalls_and_packet_filters/}. Consultados el 28-09-2026.
 \item Postfix, \emph{Basic Configuration}: \url{https://www.postfix.org/BASIC_CONFIGURATION_README.html}; Python, módulo \texttt{socket}: \url{https://docs.python.org/3/library/socket.html}. Consultados el 28-09-2026.
-\item Fuentes del grupo: \ruta{docs/bitacora-vps.md}, \ruta{docs/auditoria-pendientes-2026-09-26.md}, \ruta{docs/guia-pruebas-manuales.md} y los índices en \ruta{evidencias/10-revision/}, \ruta{evidencias/11-validacion-final/} y \ruta{evidencias/12-auditoria-lote1-dns-poweradmin/}. Código de chat en \ruta{entrega/chat-texto/}; política FTP en \ruta{configuraciones/selinux/}. Credenciales y respaldos sensibles quedaron fuera de Git.
+\item Evidencias del grupo: capturas y transcripciones en \ruta{evidencias/10-revision/}, \ruta{evidencias/11-validacion-final/} y \ruta{evidencias/12-auditoria-lote1-dns-poweradmin/}. Código del chat en \ruta{entrega/chat-texto/}; política FTP en \ruta{configuraciones/selinux/}.
 \end{enumerate}
+
+\subsection{Extractos de las evidencias guardadas}
+Estas líneas provienen de los archivos de evidencia del repositorio. No son la salida íntegra de los archivos de configuración.
+
+\paragraph{Correo} (\ruta{evidencias/06-correo/validacion-postfix-dovecot-roundcube.txt}):
+\begin{quote}\small
+Postfix 3.5.25 activo, SMTP en TCP/25; \texttt{postfix check} sin errores. Dovecot 2.3.16 activo con IMAP e IMAPS; buzones Maildir locales para CMS1 y CMS2. RoundCube 1.7.4 desplegado en webmail; respuesta HTTP 200 y título ``Grupo 3 - Webmail''.
+\end{quote}
+
+\paragraph{Usuarios y permisos} (\ruta{evidencias/02-usuarios/usuarios-directorios.txt}):
+\begin{quote}\small
+\texttt{tredes3-cms1:x:1001:1001::/home/tredes3-cms1:/bin/bash}\\
+\texttt{root:root 755 /home/tredes3-cms1}\\
+\texttt{tredes3-cms1:tredes3-cms1 755 /home/tredes3-cms1/public\_html}
+\end{quote}
+
+\paragraph{Firewall y SELinux} (\ruta{evidencias/07-firewall-selinux/validacion-firewall-selinux.txt}): el firewall publicó TCP/25, TCP/993, TCP/2121, TCP/9000 y TCP/30000--30100; \texttt{getenforce} devolvió \texttt{Enforcing}; \texttt{ftpd\_full\_access}, \texttt{ftpd\_anon\_write} y \texttt{httpd\_can\_network\_connect} quedaron apagados.
+
+\appendix
+\section{Parámetros de configuración que determinan el comportamiento}
+No reproducimos los archivos de configuración completos porque incluyen valores sensibles; en su lugar, la Tabla~\ref{tab:parametros} muestra los parámetros que cambian el comportamiento observable, el motivo de cada uno y la prueba que lo verifica.
+
+\begin{longtable}{@{}p{2.3cm}p{5.2cm}p{5.3cm}@{}}
+\caption{Parámetros clave de cada servicio y su motivo.}\label{tab:parametros}\\
+\toprule Componente & Parámetro o ubicación & Motivo y verificación \\\midrule\endfirsthead
+\toprule Componente & Parámetro o ubicación & Motivo y verificación \\\midrule\endhead
+MariaDB & \texttt{bind-address=127.0.0.1}; bases \texttt{pdns\_redes3}, \texttt{web1\_db}, \texttt{web2\_db} & No expone el puerto 3306 en la interfaz pública; \texttt{ss} confirma la escucha en loopback. \\
+PowerDNS & \texttt{launch=gmysql}; \texttt{gmysql-host=127.0.0.1}; base \texttt{pdns\_redes3} & Lee la zona desde MariaDB; \texttt{pdnsutil} y \texttt{dig} contrastan lo almacenado con lo respondido. \\
+Apache & VirtualHosts en \texttt{cms-sites.conf}, con DocumentRoot en cada \texttt{public\_html} & El \texttt{Host} elige un sitio distinto en la misma IP; \texttt{httpd -S} y las tres portadas lo verifican. \\
+PHP-FPM & \texttt{memory\_limit=512M}; pool de máximo seis procesos & Corrige el agotamiento de memoria de Joomla sin ampliar permisos; portada y administración vuelven a HTTP 200. \\
+vsftpd & \texttt{listen\_port=2121}; \texttt{pasv\_min\_port=30000}; \texttt{pasv\_max\_port=30100} & Control fuera del puerto 21 y datos pasivos alcanzables; las tres cuentas completan STOR con 226. \\
+vsftpd & \texttt{anonymous\_enable=NO}; \texttt{chroot\_local\_user=YES}; \texttt{local\_root=/home/\$USER} & Limita identidades y ruta visible; anónimo recibe 530 y rutas ajenas 550. \\
+Postfix & Dominio local en \texttt{mydestination}; buzón \texttt{Maildir/} & Entrega a cuentas Unix existentes; las dos INBOX contienen los mensajes enviados. \\
+RoundCube & \texttt{smtp\_host=127.0.0.1:25} & Apunta al puerto donde realmente escucha Postfix; desaparece el rechazo de conexión. \\
+Chat & \texttt{chat-texto.service}; FIFO \ruta{/run/chat-texto/chat.stdin}; TCP/9000 & Mantiene el servidor activo fuera de SSH; el cliente recibe respuestas en dos sesiones seguidas. \\
+\bottomrule
+\end{longtable}
+
+Estas decisiones dependen unas de otras. El FTP pasivo necesita puertos abiertos en firewalld, etiquetas SELinux de puerto y permisos de escritura en el árbol web; el correo necesita MX y A correctos, Postfix para entregar, Dovecot para leer y una configuración SMTP de RoundCube que apunte al puerto real; y los CMS necesitan resolución de nombres, VirtualHosts, PHP-FPM y acceso a su persistencia. Por eso, cada vez que corregimos una falla compartida, volvimos a probar los demás servicios.
 \end{document}

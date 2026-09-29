@@ -2,6 +2,10 @@
 
 Pruebas efectuadas después de corregir las fallas de la auditoría. Los comandos, salidas y capturas originales están en `../10-revision/`. Se utilizó conexión SSH no interactiva y túnel SOCKS para credenciales web; SELinux permaneció Enforcing. No hubo reinicio ni apagado del VPS.
 
+## Consulta SSH de disponibilidad — 29/09/2026
+
+Consulta no privilegiada en vivo desde este equipo: las unidades `httpd`, `php-fpm`, `pdns`, `mariadb`, `vsftpd`, `postfix`, `dovecot`, `firewalld` y `chat-texto` devolvieron `active`; `getenforce` informó `Enforcing`. Las solicitudes HTTP locales con cada encabezado `Host` devolvieron `web1 200`, `web2 200`, `web3 200`, `webmail 200` y `dnsadmin 302`. No se pudo ejecutar `sudo` sin autenticación en esta sesión, por lo que no se repitieron el chequeo privilegiado de la zona, la configuración del firewall ni la revisión de la base. La captura de CLI incluida en el informe técnico, `../12-auditoria-lote1-dns-poweradmin/terminal-vps-resumen.png`, es una captura real de Xterm durante una sesión SSH del 28/09 y no una imagen generada.
+
 | Actividad | Resultado observado | Evidencia final |
 |---|---|---|
 | Entorno | AlmaLinux 9.8, ens18 200.13.5.39/26, Enforcing y salida HTTP/2 200 posterior al despliegue. | `../10-revision/solucion-entorno.png` |

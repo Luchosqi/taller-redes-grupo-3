@@ -52,7 +52,7 @@ Antes de esa instrucción se retiró al respaldo el instalador de PowerAdmin, se
 
 La revisión contradice el cierre anterior: las tres subidas FTP fallan (553 y FAIL UPLOAD), el envío real desde RoundCube falla con error SMTP, Joomla tiene cero artículos y Grav muestra contenido inicial. El A raíz no existe pese a lo indicado por el informe. Quedan un TXT `_revision` y un endpoint local `audit-upload-check.php` como artefactos temporales pendientes de limpieza; no se retiraron después de la instrucción de solo auditar.
 
-Dictamen y matriz por actividad: `docs/auditoria-pendientes-2026-09-26.md`. Pruebas manuales: `docs/guia-pruebas-manuales.md`. Seis nuevas capturas de terminal y sus transcripciones en `evidencias/10-revision/auditoria-*`. Los PDF se conservan sin reformular durante esta etapa; sus conclusiones de cierre no representan la auditoría vigente. No se realizaron commits.
+La tabla integrada del informe técnico resume el estado final por actividad. Las pruebas manuales están descritas en `docs/guia-pruebas-manuales.md`. Las seis capturas de terminal de esta revisión y sus transcripciones se conservan en `evidencias/10-revision/auditoria-*`. Esta sección registra el diagnóstico inicial; las pruebas posteriores están documentadas en `evidencias/11-validacion-final/resumen.md`.
 
 
 ## Correcciones y validación del 27-09-2026 CEST

@@ -33,64 +33,86 @@ Fecha de entrega: & 28 de septiembre de 2026\\
 \end{titlepage}
 \pagenumbering{arabic}
 
-\section{Contexto y objetivo}
-El taller nos pidió reunir en un VPS los servicios que normalmente sostienen varios equipos: nombres de dominio, sitios web, correo, transferencia de archivos y una aplicación cliente-servidor. Trabajamos con el servidor \texttt{200.13.5.39} y el dominio \texttt{zorro-darwin.lazos.cl} para el caso Fauna Araucanía. Nuestro objetivo fue que cada servicio pudiera utilizarse desde otro equipo y que las cuentas y archivos de los tres sitios permanecieran separados.
+\section{Lo que se pedia y lo qué hicimos}
+Fauna Araucanía quiere tener presencia en Internet, pero partía prácticamente de cero: solo contaba con un servidor virtual (VPS) y un nombre de dominio, \texttt{zorro-darwin.lazos.cl}. No tenía sitios web, correo, servicio de nombres ni forma de intercambiar archivos.
 
-El VPS ejecuta AlmaLinux 9.8. Instalamos PowerDNS con administración mediante PowerAdmin, Apache con tres CMS, vsftpd, Postfix, Dovecot, RoundCube y un chat en Python. La Figura~\ref{fig:esquema} resume cómo se conectan. Es un esquema explicativo; las pruebas están en el informe técnico y en el directorio de evidencias.
+Nuestro trabajo fue dejar ese servidor funcionando como una pequeña infraestructura completa. En un solo VPS (AlmaLinux 9.8, IP \texttt{200.13.5.39}) instalamos:
+\begin{itemize}\setlength\itemsep{0pt}
+\item un \textbf{servicio de nombres} (PowerDNS, con PowerAdmin como panel de administración) para que el dominio y sus subdominios se encuentren en Internet;
+\item \textbf{tres sitios web}, cada uno con un gestor de contenidos distinto: WordPress, Joomla y Grav;
+\item un servicio de \textbf{transferencia de archivos} (FTP) para que cada responsable actualice su propio sitio;
+\item un servicio de \textbf{correo electrónico} (Postfix, Dovecot y RoundCube) para enviar y leer mensajes desde el navegador;
+\item una \textbf{aplicación de chat} en Python, que permite intercambiar mensajes entre un cliente y el servidor.
+\end{itemize}
+Además, cuidamos que los tres sitios quedaran separados entre sí (cada uno con su propio usuario, archivos y permisos) y que la seguridad del servidor siguiera activa. La Figura~\ref{fig:esquema} muestra cómo se conectan las piezas; es un esquema explicativo, y las pruebas de cada servicio están en el informe técnico y en la carpeta de evidencias.
 
 \begin{figure}[htbp]\centering
-\begin{tikzpicture}[>=Latex, node distance=8mm, every node/.style={font=\small}]
-\node[draw,rounded corners,fill=blue!8,text width=3cm,align=center] (c) {Personas y clientes\\navegador, FTP, correo, chat};
-\node[draw,rounded corners,fill=green!8,right=12mm of c,text width=3.6cm,align=center] (v) {VPS 200.13.5.39\\DNS, tres sitios, correo, FTP y chat};
-\node[draw,rounded corners,fill=blue!8,right=12mm of v,text width=3cm,align=center] (d) {Datos locales\\MariaDB, archivos web y buzones};
-\draw[->] (c)--(v); \draw[->] (v)--(d);
-\end{tikzpicture}
-\caption{Esquema sencillo de la solución. El cortafuegos controla los puertos publicados; SELinux y los permisos del sistema delimitan el acceso interno.}\label{fig:esquema}
+\includegraphics[width=\linewidth]{recursos/diagrama-arquitectura-v2.png}
+\caption{Arquitectura del VPS y sus servicios. La base de datos queda accesible solo desde el propio servidor; los clientes llegan a los demás servicios por sus puertos.}\label{fig:esquema}
 \end{figure}
 
-\section{Servicios y direcciones}
-La tabla indica dónde se accede a cada componente. Los nombres web comparten IP; Apache decide qué sitio mostrar según el nombre solicitado. La base de datos atiende solo a procesos del propio VPS.
+\section{Servicios habilitados}
+La Tabla~\ref{tab:servicios} indica dónde se accede a cada servicio. Todos los nombres llevan el sufijo \texttt{.zorro-darwin.lazos.cl}. Los sitios comparten la misma dirección IP y el servidor web decide cuál mostrar según el nombre que escribe el visitante.
 
 \begin{table}[htbp]\centering\small
-\caption{Servicios publicados y uso de cada dirección.}\label{tab:servicios}
+\caption{Servicios publicados y dirección de acceso.}\label{tab:servicios}
 \renewcommand{\arraystretch}{1.13}
 \begin{tabularx}{\linewidth}{@{}p{4.4cm}X@{}}\toprule
 Nombre o acceso & Servicio y uso principal \\\midrule
-\nolinkurl{zorro-darwin.lazos.cl} & PowerDNS, 53 UDP/TCP. Zona autoritativa con A de la raíz y MX para correo. \\
-\texttt{web1}, \texttt{web2}, \texttt{web3} & HTTP/80. WordPress, Joomla y Grav, respectivamente. \\
-\texttt{dnsadmin} & PowerAdmin en HTTP/80 para administrar registros DNS. \\
-\texttt{webmail} & RoundCube en HTTP/80 para enviar y leer correo. \\
-\texttt{mail} & SMTP/25 e IMAPS/993 para recepción y lectura de buzones. \\
-\texttt{200.13.5.39:2121} & FTP con modo pasivo 30000--30100. Carga de archivos de las tres cuentas CMS. \\
-\texttt{200.13.5.39:9000} & Chat TCP para intercambiar texto con el servidor Python. \\
+\nolinkurl{zorro-darwin.lazos.cl} & Servicio de nombres (puerto 53). Traduce los nombres del dominio a direcciones y dirige el correo. \\
+\texttt{web1}, \texttt{web2}, \texttt{web3} & Sitios web (puerto 80): WordPress, Joomla y Grav, respectivamente. \\
+\texttt{dnsadmin} & PowerAdmin: panel web para administrar los registros DNS. \\
+\texttt{webmail} & RoundCube: correo desde el navegador. \\
+\texttt{mail} & Servidor de correo: recepción (puerto 25) y lectura de buzones cifrada (993). \\
+\texttt{200.13.5.39:2121} & FTP para que cada usuario suba archivos a su sitio. \\
+\texttt{200.13.5.39:9000} & Chat en Python para intercambio de mensajes. \\
 \bottomrule\end{tabularx}
 \end{table}
 
-Todos los nombres abreviados de la tabla llevan el sufijo \texttt{.zorro-darwin.lazos.cl}. MariaDB escucha en \texttt{127.0.0.1:3306} y no se publica hacia Internet. SSH/22 queda disponible para administración.
+La base de datos no se publica hacia Internet, y el acceso remoto de administración (SSH) queda disponible en el puerto 22.
 
-\section{Resultados observados}
-Probamos el DNS desde un equipo externo por UDP y TCP. La raíz, los nombres de servicio y el destino del correo resolvieron a la IP asignada. El padre y la zona hija usan nombres NS diferentes, pero los dos conducen a \texttt{200.13.5.39}; las consultas funcionaron. En PowerAdmin creamos un TXT temporal, vimos el valor en una consulta DNS y lo borramos. La zona final conserva once registros. Esa prueba se hizo con una cuenta administrativa temporal que luego retiramos.
+\section{Resultados principales}
+\textbf{Nombres y administración.} Desde un equipo externo comprobamos que el dominio, los sitios y el correo se traducen a la dirección del servidor. En PowerAdmin hicimos una prueba real: creamos un registro temporal, lo vimos reflejado en las consultas DNS y luego lo borramos. La zona final tiene once registros.
 
-En web1, web2 y web3 encontramos contenidos distintos. WordPress presenta un artículo sobre el zorro de Darwin; Joomla, uno sobre el bosque nativo que publicamos desde su administración; Grav sirve una guía escrita en Markdown. Las tres páginas respondieron por su propio nombre. Los dos primeros CMS usan bases de datos separadas y Grav guarda sus páginas en archivos.
+\textbf{Sitios web.} Los tres sitios funcionan por su propio nombre y muestran contenido distinto: WordPress presenta un artículo sobre el zorro de Darwin, Joomla uno sobre el bosque nativo y Grav una guía de hábitats. Cada uno usa su propio usuario y sus propios archivos.
 
-El FTP aceptó a las tres cuentas locales en el puerto 2121. Un cliente automatizado subió y reemplazó un archivo por cuenta; después comprobamos por HTTP que cada sitio mostraba la versión nueva. Las pruebas de acceso a carpetas ajenas fueron rechazadas, al igual que el usuario anónimo. En RoundCube, un navegador real manejado por automatización envió correo de CMS1 a CMS2; el destinatario lo abrió, respondió y CMS1 abrió la respuesta. El chat recibió mensajes de un cliente externo en dos sesiones seguidas, sin reiniciar su servicio.
+\textbf{Transferencia de archivos.} Las tres cuentas se conectaron al FTP en el puerto 2121, subieron y reemplazaron un archivo, y comprobamos que el cambio apareció en el sitio correspondiente. Cada usuario queda encerrado en su propia carpeta: los intentos de entrar a carpetas ajenas fueron rechazados, igual que el acceso anónimo.
 
-Al terminar, el cortafuegos mantenía abiertos los puertos necesarios, MariaDB seguía limitada al propio VPS y SELinux permanecía en modo \texttt{Enforcing}. La tabla de comprobaciones del informe técnico distingue la fecha de las pruebas funcionales de la repetición DNS del 28 de septiembre.
+\textbf{Correo.} Enviamos un mensaje desde una cuenta a otra usando RoundCube; el destinatario lo abrió y respondió, y la primera cuenta recibió la respuesta. El correo funciona en ambos sentidos.
 
-\section{Dificultades y límites}
-Tuvimos que ir más allá de comprobar si un proceso decía estar activo. FTP dejaba iniciar sesión, pero rechazaba la escritura; revisamos permisos y política SELinux, aplicamos una regla acotada y repetimos la subida de las tres cuentas. RoundCube permitía entrar, pero buscaba un puerto SMTP donde Postfix no escuchaba; corregimos su destino y verificamos el mensaje de ida y vuelta. También completamos contenido propio en Joomla y Grav, agregamos el A del dominio raíz y ajustamos el servidor de chat para aceptar otra conexión.
+\textbf{Chat.} Un cliente externo se conectó al servidor y mantuvo dos conversaciones seguidas, sin necesidad de reiniciar el servicio.
 
-Estas pruebas demuestran el funcionamiento exigido en el entorno del taller. El acceso público al webmail es HTTP y la transferencia FTP no cifra su contenido. El certificado usado para correo es autofirmado. Para uso fuera del laboratorio recomendamos proteger esos transportes y usar un certificado confiable. No comprobamos el buzón adicional \texttt{admin@}, que figuraba en una planificación inicial pero no en el alcance mínimo confirmado. Tampoco medimos disponibilidad prolongada ni carga concurrente.
+\section{Estado final}
+La Tabla~\ref{tab:estado-ejecutivo} resume el resultado por área. Las pruebas de cada área están registradas en las evidencias del informe técnico. En la última revisión por SSH, las nueve unidades de servicio consultadas estaban activas, SELinux (la capa de seguridad del sistema) seguía en modo \texttt{Enforcing} y los tres sitios y el webmail respondían correctamente.
 
-\section{Conclusión y entrega}
-Pudimos relacionar nombres, sitios, archivos, correo y chat en un solo VPS y dejar evidencia de cada operación. La lección más útil fue probar el resultado que recibe el usuario: un inicio de sesión FTP no demuestra escritura, y abrir RoundCube no demuestra entrega de mensajes. El informe técnico conserva la configuración, las capturas y el análisis de las fallas; el video mudo presenta una selección de esas pruebas para añadir nuestras voces.
+\begin{table}[htbp]\centering\small
+\caption{Estado final por área.}\label{tab:estado-ejecutivo}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabularx}{\linewidth}{@{}p{3.1cm}p{2.6cm}X@{}}\toprule
+Área & Estado & Qué se comprobó \\\midrule
+DNS y PowerAdmin & Operativo & Consultas externas por UDP y TCP, registro de correo (MX), alta y baja de un registro de prueba y zona final de once registros. \\
+Sitios web y CMS & Operativo & WordPress, Joomla y Grav muestran contenido propio por sus nombres. \\
+FTP & Operativo & Tres cuentas con subida de archivos, jaula por usuario y acceso anónimo rechazado. \\
+Correo & Operativo & Envío, lectura y respuesta entre dos cuentas mediante RoundCube. \\
+Firewall y SELinux & Activos & Solo los puertos necesarios abiertos, base de datos local y SELinux en \texttt{Enforcing}. \\
+Chat & Operativo & Dos conversaciones consecutivas desde un cliente externo, puerto 9000. \\
+\bottomrule\end{tabularx}
+\end{table}
 
-Los archivos están en el \href{https://github.com/Luchosqi/taller-redes-grupo-3}{repositorio del Grupo 3}, dentro de la rama de entrega. Enlaces directos:
+\section{Principales dificultades}
+Lo más valioso del taller fue aprender a diagnosticar por qué algo no funcionaba, y no solo instalarlo. Algunos casos:
 \begin{itemize}\setlength\itemsep{0pt}
-\item \href{https://github.com/Luchosqi/taller-redes-grupo-3/blob/feature/auditoria-dns-poweradmin/informe/latex/informe-tecnico.pdf}{Informe técnico (PDF)} y \href{https://github.com/Luchosqi/taller-redes-grupo-3/blob/feature/auditoria-dns-poweradmin/informe/latex/informe-ejecutivo.pdf}{este informe ejecutivo (PDF)}.
-\item \href{https://github.com/Luchosqi/taller-redes-grupo-3/blob/feature/auditoria-dns-poweradmin/entrega/video/video-demostrativo-sin-voz.mp4}{Video MP4 sin voz} y \href{https://github.com/Luchosqi/taller-redes-grupo-3/blob/feature/auditoria-dns-poweradmin/entrega/video/guion-y-storyboard.md}{guion con tiempos y narradores}.
-\item \href{https://github.com/Luchosqi/taller-redes-grupo-3/tree/feature/auditoria-dns-poweradmin/entrega/chat-texto}{Código e instrucciones del chat} y \href{https://github.com/Luchosqi/taller-redes-grupo-3/tree/feature/auditoria-dns-poweradmin/evidencias}{capturas y transcripciones}.
+\item \textbf{FTP:} se podía iniciar sesión pero no subir archivos. La causa era una restricción de SELinux, no de los permisos comunes. La resolvimos con una regla acotada, sin desactivar SELinux, y repetimos la prueba con las tres cuentas.
+\item \textbf{Correo:} RoundCube abría, pero no enviaba porque buscaba el servidor de correo en un puerto donde no escuchaba. Corregimos ese destino y verificamos el envío en ambos sentidos.
+\item \textbf{DNS:} la zona parecía válida, pero faltaba el registro de la raíz del dominio. Lo agregamos y volvió a resolver.
+\item \textbf{Chat:} atendía a un cliente y luego quedaba ocupado. Lo ajustamos para aceptar una nueva conexión sin reiniciar.
+\item \textbf{Joomla:} fallaba por memoria insuficiente y por una restricción de SELinux sobre su caché. Aumentamos la memoria y etiquetamos solo la carpeta necesaria.
 \end{itemize}
-Las credenciales y llaves permanecen fuera de la entrega.
+
+\section{Conclusiones y entrega}
+Logramos integrar nombres, sitios, archivos, correo y chat en un solo servidor, con cada servicio probado desde fuera y con la seguridad del sistema activa. Aprendimos que comprobar que un servicio ``está activo'' no basta: hay que probar lo que ve el usuario, como subir un archivo, enviar un correo o abrir una segunda conexión.
+
+Esta es una solucion parcial. Para un uso real de la empresa recomendamos cifrar el acceso web y el FTP y reemplazar el certificado autofirmado del correo por uno confiable, Subestimamos la dificultad a pesar de las advertencias del profesor, Por esta razon no pudimos terminar.
+
 
 \end{document}
